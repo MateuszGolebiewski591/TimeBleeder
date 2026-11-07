@@ -12,11 +12,12 @@ public class GameAndNetworkController : NetworkBehaviour
     [SerializeField] public BoardController board1;
     [SerializeField] public BoardController board2;
 
-    [SerializeField] private MazeController mazeController;
-    public MazeController Maze => mazeController;
-
     [SerializeField] private MazeData board1MazeData;
     [SerializeField] private MazeData board2MazeData;
+
+    public MazeController mazeController;
+    public MazeController Maze => mazeController;
+
     private PlayerController player;
 
     [Header("Angel Settings")]
@@ -56,6 +57,8 @@ public class GameAndNetworkController : NetworkBehaviour
     private void Start()
     {
         if (!IsServer) return;
+
+        MazeController mazeController = GetComponent<MazeController>();
 
         InitialiseBoardMaze(board1, board1MazeData);
         InitialiseBoardMaze(board2, board2MazeData);
