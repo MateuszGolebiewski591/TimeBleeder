@@ -15,6 +15,10 @@ public class GameAndNetworkController : NetworkBehaviour
     [SerializeField] private MazeData board1MazeData;
     [SerializeField] private MazeData board2MazeData;
 
+    [Tooltip("Scene objects marking where each maze is centred. Empty = the board's own position.")]
+    [SerializeField] private Transform board1MazeCentre;
+    [SerializeField] private Transform board2MazeCentre;
+
     public MazeController mazeController;
     public MazeController Maze => mazeController;
 
@@ -59,10 +63,11 @@ public class GameAndNetworkController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        MazeController mazeController = GetComponent<MazeController>();
+        if (mazeController == null)
+            mazeController = GetComponent<MazeController>();
 
-        InitialiseBoardMaze(board1, board1MazeData);
-        InitialiseBoardMaze(board2, board2MazeData);
+        InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre);
+        InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre);
     }
 
     private void FixedUpdate()
@@ -78,13 +83,14 @@ public class GameAndNetworkController : NetworkBehaviour
         return null;
     }
 
-    private void InitialiseBoardMaze(BoardController board, MazeData mazeData)
+    private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre)
     {
         if (board == null) return;
         if (mazeController == null) return;
         if (mazeData == null) return;
 
-        if (!mazeController.GenerateMaze(mazeData, board.transform.position))
+        Vector3 centre = mazeCentre != null ? mazeCentre.position : board.transform.position;
+        if (!mazeController.GenerateMaze(mazeData, centre))
             return;
 
         float spawnDistance = Mathf.Clamp(spawnDistanceFromPlayer, 0f, mazeController.GetMazeSize(mazeData));
@@ -104,8 +110,7 @@ public class GameAndNetworkController : NetworkBehaviour
 
     private void PlaceOnGrid(Transform character, MazeData mazeData, Vector2Int gridPosition)
     {
-        Vector3 world = mazeController.MazeGridToWorld(mazeData, gridPosition);
-        character.position = new Vector3(world.x, character.position.y, world.z);
+        character.position = mazeController.MazeGridToWorld(mazeData, gridPosition);
     }
 
     private void TickAngel(BoardController board, MazeData mazeData, ref float timer)
@@ -235,4 +240,6 @@ public class GameAndNetworkController : NetworkBehaviour
             }
         }
     }*/
+
+    
 }

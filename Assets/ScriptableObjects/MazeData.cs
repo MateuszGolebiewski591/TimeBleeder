@@ -7,15 +7,8 @@ public class MazeData : ScriptableObject
     [Min(1)] public int width = 15;
     [Min(1)] public int height = 15;
 
-    [Header("Appearance")]
-    public GameObject wallPrefab;
-    public Material wallMaterial;
-    public Material floorMaterial;
-
     [Min(0.01f)] public float tileSize = 1f;
-    [Min(0.01f)] public float wallHeight = 0.5f;
-    [SerializeField] private GameObject centreAnchorPrefab;
-    public Vector3? anchorPosition => centreAnchorPrefab != null ? centreAnchorPrefab.transform.position : (Vector3?)null;
+    public Vector3 anchorOffset = Vector3.zero;
 
     // Runtime state of the generated maze, set by MazeController.GenerateMaze
     public Transform Root { get; private set; }

@@ -13,8 +13,8 @@ public class MazeController : MonoBehaviour
         mazeGenerator = GetComponent<MazeGenerator>();
     }
 
-    // Centre is the data's anchor if it has one, otherwise fallbackCentre, otherwise this object's position
-    public bool GenerateMaze(MazeData mazeData, Vector3? fallbackCentre = null)
+    // Builds the maze around centre (or this object's position if none is given), shifted by the data's anchorOffset
+    public bool GenerateMaze(MazeData mazeData, Vector3? centre = null)
     {
         if (mazeGenerator == null)
         {
@@ -31,12 +31,12 @@ public class MazeController : MonoBehaviour
         if (mazeData.Root != null)
             Destroy(mazeData.Root.gameObject);
 
-        Vector3 centre = mazeData.anchorPosition ?? fallbackCentre ?? transform.position;
+        Vector3 mazeCentre = (centre ?? transform.position) + mazeData.anchorOffset;
         Transform root = new GameObject("Maze - " + mazeData.name).transform;
         root.SetParent(transform, false);
 
-        mazeData.SetInstance(root, centre);
-        mazeGenerator.Generate(mazeData, root, centre);
+        mazeData.SetInstance(root, mazeCentre);
+        mazeGenerator.Generate(mazeData, root, mazeCentre);
 
         if (!generatedMazes.Contains(mazeData))
             generatedMazes.Add(mazeData);
@@ -82,7 +82,7 @@ public class MazeController : MonoBehaviour
 
         float worldX = originX + (gridPosition.x + 0.5f) * tileSize;
         float worldZ = originZ + (gridPosition.y + 0.5f) * tileSize;
-        return new Vector3(worldX, 0f, worldZ);
+        return new Vector3(worldX, mazeData.Centre.y, worldZ);
     }
 
     public bool IsWalkable(bool[,] mazeFloor, Vector2Int position)
@@ -283,15 +283,17 @@ public class MazeController : MonoBehaviour
         floor[position.x, position.y] = false;
 
         float tileSize = mazeData.tileSize;
-        mazeGenerator.SpawnBlock(
-            mazeData.Root,
-            "Wall " + position.x + "," + position.y,
-            mazeData.Centre + new Vector3(
-                (position.x - (walls.GetLength(0) - 1) * 0.5f) * tileSize,
-                mazeData.wallHeight / 2f,
-                (position.y - (walls.GetLength(1) - 1) * 0.5f) * tileSize),
-            new Vector3(tileSize, mazeData.wallHeight, tileSize),
-            mazeData.wallPrefab, mazeData.wallMaterial);
+
+        // // TODO: change
+        // mazeGenerator.SpawnBlock(
+        //     mazeData.Root,
+        //     "Wall " + position.x + "," + position.y,
+        //     mazeData.Centre + new Vector3(
+        //         (position.x - (walls.GetLength(0) - 1) * 0.5f) * tileSize,
+        //         mazeData.wallHeight / 2f,
+        //         (position.y - (walls.GetLength(1) - 1) * 0.5f) * tileSize),
+        //     new Vector3(tileSize, mazeData.wallHeight, tileSize),
+        //     mazeData.wallPrefab, mazeData.wallMaterial);
     }
 
     public void LowerWall(MazeData mazeData, Vector2Int position)

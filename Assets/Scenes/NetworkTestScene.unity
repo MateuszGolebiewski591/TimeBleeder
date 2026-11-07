@@ -497,6 +497,8 @@ MonoBehaviour:
   board2: {fileID: 1855623075}
   board1MazeData: {fileID: 11400000, guid: 324d7e31a78d2db4098c8c32d51f3f8e, type: 2}
   board2MazeData: {fileID: 11400000, guid: c98dac744fa21464289f33ce185b3098, type: 2}
+  board1MazeCentre: {fileID: 836376604}
+  board2MazeCentre: {fileID: 581447872}
   mazeController: {fileID: 361516634}
   angelMoveSpeed: 1
   spawnDistanceFromPlayer: 5
@@ -875,7 +877,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8132825646375646999, guid: a897df09b4023ac428ff3fdb1d82e4ca, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -22.29299
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8132825646375646999, guid: a897df09b4023ac428ff3fdb1d82e4ca, type: 3}
       propertyPath: m_LocalRotation.w
@@ -944,7 +946,7 @@ Transform:
   m_GameObject: {fileID: 581447871}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 0.5, z: 19.67}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1304,7 +1306,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8997220557647773741, guid: 83178240cb0117b4fa64ecf67958fa50, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -22.29299
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8997220557647773741, guid: 83178240cb0117b4fa64ecf67958fa50, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1418,7 +1420,7 @@ Transform:
   m_GameObject: {fileID: 836376603}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.08, y: 0.5, z: 45.26}
+  m_LocalPosition: {x: 0, y: 0, z: -24.72}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1817,7 +1819,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8132825646375646999, guid: a897df09b4023ac428ff3fdb1d82e4ca, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -22.29299
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8132825646375646999, guid: a897df09b4023ac428ff3fdb1d82e4ca, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2465,7 +2467,7 @@ MonoBehaviour:
   readyUpPanel: {fileID: 191618621}
   countDownPanel: {fileID: 954626179}
   mainGamePanel: {fileID: 723202683}
-  gameOverPanel: {fileID: 0}
+  gameEndPanel: {fileID: 0}
   readyUpPanelText: {fileID: 35941778}
   countDownPanelText: {fileID: 228045794}
   mainTimerText: {fileID: 1768039481}
@@ -2849,7 +2851,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8997220557647773741, guid: 83178240cb0117b4fa64ecf67958fa50, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -22.29299
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8997220557647773741, guid: 83178240cb0117b4fa64ecf67958fa50, type: 3}
       propertyPath: m_LocalRotation.w
