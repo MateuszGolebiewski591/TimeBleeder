@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 9157724207912933532}
   - component: {fileID: 768641660250173517}
   - component: {fileID: 3978342981899200031}
+  - component: {fileID: 277238844887554835}
   m_Layer: 0
   m_Name: Highlight
   m_TagString: Untagged
@@ -257,3 +258,15 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &277238844887554835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3780137560049587518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caaa340d0d9af6e48abef9241ca2eb27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Highlight
