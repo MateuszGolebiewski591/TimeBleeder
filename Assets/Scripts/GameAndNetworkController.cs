@@ -114,8 +114,8 @@ public class GameAndNetworkController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        if (state != GameState.GameActive) return;
-        if(currentPlayer.value == 0)
+        if (state.Value != GameState.GameActive) return;
+        if(currentPlayer.Value == 0)
         {
             TickAngel(board1, board1MazeData, board1AngelGrid, ref board1AngelTimer);
         }else
