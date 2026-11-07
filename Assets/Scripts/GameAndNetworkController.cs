@@ -102,8 +102,8 @@ public class GameAndNetworkController : NetworkBehaviour
 
         for (int i = 0; i < gridWidth; i++) {
             for (int j = 0; j < gridHeight; j++) {
-                board1Blocks.Add(new BlockData(i, j, board1data[i, j]));
-                board2Blocks.Add(new BlockData(i, j, board2data[i, j]));
+                board1Blocks.Add(new BlockData(i, j, board1data[i, j], false));
+                board2Blocks.Add(new BlockData(i, j, board2data[i, j], false));
             }
         }
 
@@ -303,12 +303,14 @@ public class GameAndNetworkController : NetworkBehaviour
     public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, RpcParams rpcParams = default) {
         switch (mode) {
             case PlayerController.Mode.raise : {
+                //RunYarjans
                 break;
             }
             case PlayerController.Mode.lower : {
+                // RunTarjans
                 break;
             }
-            case PlayerController.Mode.move : {
+            case PlayerController.Mode.move : { 
                 break;
             }
         }
@@ -322,6 +324,19 @@ public class GameAndNetworkController : NetworkBehaviour
         if (currentPlayer.Value == 0) currentPlayer.Value = 1;
         else currentPlayer.Value = 0;
     }
+
+    [Rpc(SendTo.Server)]
+    public void AngelCaughtPlayerRPC(RpcParams rpcParams = default) {
+        // Take 5 seconds penalty, force swap of players. 
+        // Regenarate map 
+    }
+
+
+    private void RunTarjans() { // Called After every block placed / removed 
+
+    }
+
+
 
 
 }

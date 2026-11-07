@@ -50,12 +50,22 @@ public class MazeBuilder : MonoBehaviour
 
     private void OnBoard1BlocksChanged(NetworkListEvent<BlockData> changeEvent)
     {
-        TryInitialise();
+        if (!initialised)
+        {
+            TryInitialise();
+            return;
+        }
+        AdjustBlock(changeEvent.Index, changeEvent.Value);
     }
 
     private void OnBoard2BlocksChanged(NetworkListEvent<BlockData> changeEvent)
     {
-        TryInitialise();
+        if (!initialised)
+        {
+            TryInitialise();
+            return;
+        }
+        AdjustBlock(changeEvent.Index, changeEvent.Value);
     }
 
     private void OnWidthChanged(int previous, int next)
@@ -96,7 +106,7 @@ public class MazeBuilder : MonoBehaviour
         {
             BlockData block = ganc.board1Blocks[i];
             // canBeRaised = open floor, so the wall matrix is its inverse
-            board1Matrix[block.posWidth, block.posHeight] = !block.canBeRaised;
+            board1Matrix[block.posWidth, block.posHeight] = !block.isFloor;
         }
 
         Build(board1Matrix, gameObject.transform);
@@ -108,10 +118,22 @@ public class MazeBuilder : MonoBehaviour
         {
             BlockData block = ganc.board2Blocks[i];
             // canBeRaised = open floor, so the wall matrix is its inverse
-            board2Matrix[block.posWidth, block.posHeight] = !block.canBeRaised;
+            board2Matrix[block.posWidth, block.posHeight] = !block.isFloor;
         }
 
         Build(board2Matrix, gameObject.transform);
+    }
+
+    private void AdjustBlock(int index, BlockData block) {
+        
+    }
+
+    private void RaiseBlock() {
+
+    }
+
+    private void LowerBlock() {
+
     }
 
 
