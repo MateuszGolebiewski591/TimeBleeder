@@ -68,19 +68,19 @@ public class UIManager : MonoBehaviour
 
     private void UpdateGlobalTime(float prev, float nextf) {
         int next = (int)nextf;
-        mainTimerText.text = $"{(int)90/60}:{next%60:D2}";
+        mainTimerText.text = $"{next/60}:{next%60:D2}";
     }
 
     private void UpdatePlayer1Time(float prev, float nextf) {
         int next = (int)nextf;
-        if (player == 0) currentPlayerTime.text = $"{(int)90/60}:{next%60:D2}";
-        else opponentTime.text = $"{(int)90/60}:{next%60:D2}";
+        if (player == 0) currentPlayerTime.text = $"{next/60}:{next%60:D2}";
+        else opponentTime.text = $"{next/60}:{next%60:D2}";
     }
 
     private void UpdatePlayer2Time(float prev, float nextf) {
         int next = (int)nextf;
-        if (player == 1) currentPlayerTime.text = $"{(int)90/60}:{next%60:D2}";
-        else opponentTime.text = $"{(int)90/60}:{next%60:D2}";
+        if (player == 1) currentPlayerTime.text = $"{next/60}:{next%60:D2}";
+        else opponentTime.text = $"{next/60}:{next%60:D2}";
     }
 
     private void UpdateGameOverScreen(ulong prev, ulong winner) {

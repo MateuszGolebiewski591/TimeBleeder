@@ -20,7 +20,7 @@ public struct BlockData : INetworkSerializable, IEquatable<BlockData>
         where T : IReaderWriter
     {
         serializer.SerializeValue(ref posWidth);
-        serializer.SerializeValue(ref posWidth);
+        serializer.SerializeValue(ref posHeight);
         serializer.SerializeValue(ref canBeRaised);
     }
 

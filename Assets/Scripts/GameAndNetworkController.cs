@@ -15,7 +15,7 @@ public class GameAndNetworkController : NetworkBehaviour
     [SerializeField] private MazeData board1MazeData;
     [SerializeField] private MazeData board2MazeData;
 
-    [Tooltip("Scene objects marking where each maze is centred. Empty = the board's own position.")]
+    [Tooltip("The MazeBuilder object for each board (walls are built centred on it). Empty = the board's own transform.")]
     [SerializeField] private Transform board1MazeCentre;
     [SerializeField] private Transform board2MazeCentre;
 
@@ -29,7 +29,7 @@ public class GameAndNetworkController : NetworkBehaviour
     public float spawnDistanceFromPlayer = 5f;
 
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
-    
+
 
 
     public enum GameState {
@@ -53,6 +53,7 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkList<BlockData> board1Blocks = new NetworkList<BlockData>();
     public NetworkList<BlockData> board2Blocks = new NetworkList<BlockData>();
     public NetworkVariable<bool> boardsInitialised;
+    // Size of the maze grid (MazeData.width/height are cell counts; the grid is 2n + 1)
     public NetworkVariable<int> width;
     public NetworkVariable<int> height;
 
@@ -70,37 +71,40 @@ public class GameAndNetworkController : NetworkBehaviour
 
         InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre);
         InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre);
+
         bool[,] board1data = board1MazeData.GetFloorData();
         bool[,] board2data = board2MazeData.GetFloorData();
-        int lwidth = board1MazeData.width;
-        int lheight = board1MazeData.height;
-        width.Value = lwidth;
-        height.Value = lheight; 
-
-        List<BlockData> blocks1 = new List<BlockData>();
-        for (int i = 0; i < lwidth; i++) {
-            for (int j = 0; j < lheight; j++) {
-                blocks1.Add(new BlockData(i, j, board1data[i, j]));
-            }
-        }
-        foreach (BlockData block in blocks1) {
-            board1Blocks.Add(block);
+        if (board1data == null || board2data == null)
+        {
+            Debug.LogError("GameAndNetworkController: maze generation failed, boards not sent.");
+            return;
         }
 
-        List<BlockData> blocks2 = new List<BlockData>();
-        for (int i = 0; i < lwidth; i++) {
-            for (int j = 0; j < lheight; j++) {
-                blocks2.Add(new BlockData(i, j, board2data[i, j]));
+        int gridWidth = board1data.GetLength(0);
+        int gridHeight = board1data.GetLength(1);
+        if (board2data.GetLength(0) != gridWidth || board2data.GetLength(1) != gridHeight)
+        {
+            Debug.LogError("GameAndNetworkController: both MazeData assets must have the same width and height.");
+            return;
+        }
+
+        width.Value = gridWidth;
+        height.Value = gridHeight;
+
+        for (int i = 0; i < gridWidth; i++) {
+            for (int j = 0; j < gridHeight; j++) {
+                board1Blocks.Add(new BlockData(i, j, board1data[i, j]));
+                board2Blocks.Add(new BlockData(i, j, board2data[i, j]));
             }
         }
-        foreach (BlockData block in blocks2) {
-            board2Blocks.Add(block);
-        }
+
         boardsInitialised.Value = true;
     }
 
     private void FixedUpdate()
     {
+        if (!IsServer) return;
+
         TickAngel(board1, board1MazeData, ref board1AngelTimer);
         TickAngel(board2, board2MazeData, ref board2AngelTimer);
     }
@@ -112,14 +116,19 @@ public class GameAndNetworkController : NetworkBehaviour
         return null;
     }
 
+    private Transform GetMazeRoot(BoardController board, Transform mazeCentre)
+    {
+        if (mazeCentre != null) return mazeCentre;
+        return board != null ? board.transform : null;
+    }
+
     private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre)
     {
         if (board == null) return;
         if (mazeController == null) return;
         if (mazeData == null) return;
 
-        Vector3 centre = mazeCentre != null ? mazeCentre.position : board.transform.position;
-        if (!mazeController.GenerateMaze(mazeData, centre))
+        if (!mazeController.GenerateMaze(mazeData, GetMazeRoot(board, mazeCentre)))
             return;
 
         float spawnDistance = Mathf.Clamp(spawnDistanceFromPlayer, 0f, mazeController.GetMazeSize(mazeData));
@@ -181,9 +190,9 @@ public class GameAndNetworkController : NetworkBehaviour
             player2TimeGained.Value = 0;
             GlobalTime.Value = (int)timeLimit;
             player1Ready.Value = false;
-            player1Ready.Value = false;
-            playerReady.Add(0, false);
-            playerReady.Add(1, false);
+            player2Ready.Value = false;
+            playerReady[0] = false;
+            playerReady[1] = false;
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
             StartMazeGeneration();
@@ -203,8 +212,15 @@ public class GameAndNetworkController : NetworkBehaviour
 
     [Rpc(SendTo.Server)]
     public void ReadyRPC(RpcParams rpcParams = default) {
+        // Late/duplicate clicks must not restart the countdown
+        if (state.Value != GameState.ReadyUp) return;
+
         ulong playerID = rpcParams.Receive.SenderClientId;
-        if (!playerReady[playerID]) {
+        if (!playerReady.TryGetValue(playerID, out bool alreadyReady)) {
+            Debug.LogWarning($"ReadyRPC from unexpected client {playerID}");
+            return;
+        }
+        if (!alreadyReady) {
             playerReady[playerID] = true;
             if (playerID == 0) player1Ready.Value = true;
             else if (playerID == 1) player2Ready.Value = true;
@@ -215,14 +231,15 @@ public class GameAndNetworkController : NetworkBehaviour
         }
         if (ready) {
             state.Value = GameState.CountDown;
-            StartCoroutine(CountDownTimer()); 
+            StartCoroutine(CountDownTimer());
         }
     }
 
     private IEnumerator CountDownTimer() {
-        float time = 3f; 
+        float time = 3f;
         while (time > 0) {
-            countDownTime.Value = (int)Math.Floor(time);
+            // Ceil so the display reads 3, 2, 1 rather than 2, 1, 0
+            countDownTime.Value = (int)Math.Ceiling(time);
             time -= Time.deltaTime;
             yield return null;
         }
@@ -235,7 +252,7 @@ public class GameAndNetworkController : NetworkBehaviour
             GlobalTime.Value -= Time.deltaTime;
             if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
             else player2TimeGained.Value += Time.deltaTime;
-            yield return null; 
+            yield return null;
         }
         currentPlayer.Value = 0;
     }
@@ -264,5 +281,5 @@ public class GameAndNetworkController : NetworkBehaviour
         else currentPlayer.Value = 0;
     }
 
-    
+
 }

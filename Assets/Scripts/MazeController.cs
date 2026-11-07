@@ -13,8 +13,9 @@ public class MazeController : MonoBehaviour
         mazeGenerator = GetComponent<MazeGenerator>();
     }
 
-    // Builds the maze around centre (or this object's position if none is given), shifted by the data's anchorOffset
-    public bool GenerateMaze(MazeData mazeData, Vector3? centre = null)
+    // Generates the maze data for a maze centred on root. root must be the transform the
+    // MazeBuilder builds under, so grid <-> world conversions line up with the built walls.
+    public bool GenerateMaze(MazeData mazeData, Transform root)
     {
         if (mazeGenerator == null)
         {
@@ -28,6 +29,14 @@ public class MazeController : MonoBehaviour
             return false;
         }
 
+        if (root == null)
+        {
+            Debug.LogError("MazeController: GenerateMaze was given no root transform.");
+            return false;
+        }
+
+        // Must come before Generate, as SetInstance clears any old maze arrays
+        mazeData.SetInstance(root, root.position);
         mazeGenerator.Generate(mazeData);
 
         if (!generatedMazes.Contains(mazeData))

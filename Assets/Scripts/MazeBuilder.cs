@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using System.Collections;
 
 public class MazeBuilder : MonoBehaviour
 {
@@ -7,9 +8,9 @@ public class MazeBuilder : MonoBehaviour
 
     [Header("Appearance")]
     [SerializeField] private float tileSize = 1f;
-    [SerializeField] private float wallHeight = 0.5f; 
-    [SerializeField] private GameObject wallPrefab; 
-    [SerializeField] private Material material; 
+    [SerializeField] private float wallHeight = 0.5f;
+    [SerializeField] private GameObject wallPrefab;
+    [SerializeField] private Material material;
     [SerializeField] private Material floorMaterial;
     [SerializeField] private bool isBoard1 = false;
     private bool widthReceived = false;
@@ -22,16 +23,20 @@ public class MazeBuilder : MonoBehaviour
     bool[,] board2Matrix;
 
 
-    private void Start()
+    private IEnumerator Start()
     {
         ganc = FindFirstObjectByType<GameAndNetworkController>();
 
-    
+
         ganc.board1Blocks.OnListChanged += OnBoard1BlocksChanged;
         ganc.board2Blocks.OnListChanged += OnBoard2BlocksChanged;
 
         ganc.width.OnValueChanged += OnWidthChanged;
         ganc.height.OnValueChanged += OnHeightChanged;
+
+        // On clients the initial values arrive when ganc spawns, without raising
+        // OnValueChanged/OnListChanged, so wait for the spawn before reading them.
+        while (!ganc.IsSpawned) yield return null;
 
         // Read their current values in case they arrived before Start.
         width = ganc.width.Value;
@@ -86,22 +91,24 @@ public class MazeBuilder : MonoBehaviour
     }
 
     private void InitialiseBoard1() {
-        board1Matrix = new bool[width,height]; 
+        board1Matrix = new bool[width,height];
         for (int i = 0; i < ganc.board1Blocks.Count; i++)
         {
             BlockData block = ganc.board1Blocks[i];
-            board1Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
+            // canBeRaised = open floor, so the wall matrix is its inverse
+            board1Matrix[block.posWidth, block.posHeight] = !block.canBeRaised;
         }
 
         Build(board1Matrix, gameObject.transform);
     }
 
     private void InitialiseBoard2() {
-        board2Matrix = new bool[width,height]; 
+        board2Matrix = new bool[width,height];
         for (int i = 0; i < ganc.board2Blocks.Count; i++)
         {
             BlockData block = ganc.board2Blocks[i];
-            board2Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
+            // canBeRaised = open floor, so the wall matrix is its inverse
+            board2Matrix[block.posWidth, block.posHeight] = !block.canBeRaised;
         }
 
         Build(board2Matrix, gameObject.transform);
@@ -141,7 +148,7 @@ public class MazeBuilder : MonoBehaviour
         Material wallMat = material != null ? material : MakeDefaultMaterial(new Color(0.2f, 0.28f, 0.4f));
         Material floorMat = floorMaterial != null ? floorMaterial : MakeDefaultMaterial(new Color(0.85f, 0.85f, 0.8f));
         int wallCount = 0;
-        
+
         for (int x = 0; x < gridW; x++)
         {
             for (int y = 0; y < gridH; y++)

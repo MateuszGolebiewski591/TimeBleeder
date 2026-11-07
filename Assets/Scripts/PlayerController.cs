@@ -50,6 +50,9 @@ public class PlayerController : NetworkBehaviour
             board1 = ganc.board1;
             board2 = ganc.board2;
             ganc.currentPlayer.OnValueChanged += UpdateTurn;
+            // OnValueChanged only fires on changes, so pick up the current values too
+            state = ganc.state.Value;
+            UpdateTurn(ganc.currentPlayer.Value, ganc.currentPlayer.Value);
         }
         yield return null;
     }
