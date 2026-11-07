@@ -13,6 +13,7 @@ public class BoardController : MonoBehaviour
 
     [Header("Angel Settings")]
     public float angelMoveSpeed = 1f;
+    public float spawnDistanceFromPlayer = 5f;
     private AngelMovement angelMovement;
     private float angelMoveTimer;
 
@@ -20,6 +21,11 @@ public class BoardController : MonoBehaviour
     {
         mazeGenerator = GetComponent<MazeGenerator>();
         angelMovement = angel.GetComponent<AngelMovement>();
+
+        if(spawnDistanceFromPlayer > Mathf.Max(mazeGenerator.width, mazeGenerator.height))
+            spawnDistanceFromPlayer = Mathf.Max(mazeGenerator.width, mazeGenerator.height);
+        if(spawnDistanceFromPlayer < 0f)
+            spawnDistanceFromPlayer = 0f;
 
         if (mazeGenerator != null)
         {
@@ -38,7 +44,7 @@ public class BoardController : MonoBehaviour
             SetPlayerStartPosition(mazeGenerator.GetFloorData(), player.transform.position);
 
         if (mazeGenerator != null && angel != null)
-            SetAngelStartPosition(mazeGenerator.GetFloorData(), angel.transform.position);
+            SetAngelStartPosition(mazeGenerator.GetFloorData(), angel.transform.position, player.transform.position);
     }
 
     void FixedUpdate()
@@ -100,9 +106,18 @@ public class BoardController : MonoBehaviour
         else Debug.LogError("Player GameObject reference is not set.");
     }
 
-    private void SetAngelStartPosition(bool[,] mazeFloor, Vector3 position)
+    private void SetAngelStartPosition(bool[,] mazeFloor, Vector3 position, Vector3 playerPosition)
     {
+        // Find random position for the angel that is walkable and not too close to the player
         FindRandomWalkablePosition(mazeFloor, out Vector2Int randomPosition);
+
+        if (Vector2Int.Distance(randomPosition, WorldToMazeGrid(playerPosition, mazeFloor)) < spawnDistanceFromPlayer)
+        {
+            // If the random position is too close to the player, find another one
+            SetAngelStartPosition(mazeFloor, position, playerPosition);
+            return;
+        }
+
         Vector3 angelWorldPosition = MazeGridToWorld(randomPosition, mazeGenerator.GetFloorData());
         
         if (angel != null) angel.transform.position = new Vector3(angelWorldPosition.x, position.y, angelWorldPosition.z);
