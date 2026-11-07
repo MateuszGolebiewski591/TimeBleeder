@@ -6,15 +6,17 @@ using UnityEngine;
 
 public class MazeGenerator : MonoBehaviour
 {
+    [SerializeField] MazeData mazeData;
+
     [Header("Maze size (number of passage cells)")]
     [Min(1)] public int width = 15;
     [Min(1)] public int height = 15;
 
     [Header("Appearance")]
-    public GameObject wallPrefab;
+    private GameObject wallPrefab => mazeData.wallPrefab;
 
-    [Min(0.01f)] public float tileSize = 1f;
-    [Min(0.01f)] public float wallHeight = 1f;
+    private float tileSize => mazeData.tileSize;
+    private float wallHeight => mazeData.wallHeight;
 
     public bool buildFloor = true;
 
@@ -49,16 +51,6 @@ public class MazeGenerator : MonoBehaviour
         if (generateOnStart) Generate();
     }
 
-    public bool[,] GetWallData()
-    {
-        return walls;
-    }
-
-    public bool[,] GetFloorData()
-    {
-        return floor;
-    }
-
     [ContextMenu("Generate")]
     public void Generate()
     {
@@ -67,6 +59,7 @@ public class MazeGenerator : MonoBehaviour
         Carve(rng);
         BuildFloorMask();
         Build();
+        mazeData.SetMazeData(walls, floor);
         // if (frameMainCamera && Application.isPlaying) FrameCamera();
     }
 
@@ -188,7 +181,7 @@ public class MazeGenerator : MonoBehaviour
                 if (!walls[x, y]) continue;
                 SpawnBlock(
                     "Wall " + x + "," + y,
-                    centrePosition + new Vector3(
+                    new Vector3(
                         (x - (gridW - 1) * 0.5f) * tileSize,
                         wallHeight * 0.5f,
                         (y - (gridH - 1) * 0.5f) * tileSize),
@@ -203,12 +196,12 @@ public class MazeGenerator : MonoBehaviour
             const float floorThickness = 0.1f;
             SpawnBlock(
                 "Floor",
-                centrePosition,
+                new Vector3(0,0,0),
                 new Vector3(gridW * tileSize, floorThickness, gridH * tileSize), null, floorMat);
         }
     }
 
-    private void SpawnBlock(string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
+    public void SpawnBlock(string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
     {
         GameObject go = prefab != null
             ? Instantiate(prefab, transform)
@@ -216,7 +209,7 @@ public class MazeGenerator : MonoBehaviour
 
         go.name = blockName;
         go.transform.SetParent(transform, false);
-        go.transform.position = worldPos;
+        go.transform.position = worldPos + centrePosition;
         go.transform.localRotation = Quaternion.identity;
         go.transform.localScale = scale;
 

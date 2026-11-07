@@ -7,21 +7,19 @@ public class AngelMovement : MonoBehaviour
 {
     public float smoothMoveSpeed = 5f; // Speed at which the angel moves (smoothly)
     public float smoothRotationSpeed = 360f; // Rotation speed in degrees per second
-    private bool[,] mazeFloor; // true = open floor, the inverse of walls
+
+    [SerializeField] MazeData mazeData;
     private Node[,] nodes; // Need nodes as the 2D array doesn't work with Dijkstra's
     
     private Vector2Int currentPosition; 
     private Vector2Int targetPosition;
     private Vector3 movementTarget;
+    private Vector3 movementStartPosition;
+    private Vector2Int movementGridTarget;
     private bool isMoving;
+    private bool returningToStart;
     private Quaternion rotationTarget;
     private bool isRotating;
-
-    public void SetMazeData(bool[,] floor)
-    {
-        mazeFloor = floor;
-        InitialiseGrid(floor);
-    }
 
     // Passes mazeGridToWorld so angel can just do it itself
     public void MoveAngel(Vector2Int angelGridPosition, Vector2Int playerGridPosition, System.Func<Vector2Int, bool[,], Vector3> mazeGridToWorld)
@@ -30,6 +28,8 @@ public class AngelMovement : MonoBehaviour
         // recalculating a new destination while it is still moving.
         if (isMoving)
             return;
+
+        InitialiseGrid(); // Ensure the grid is initialized before moving
 
         // Move the angel
         Vector2Int nextPosition = MoveTowardsPlayer(angelGridPosition, playerGridPosition);
@@ -44,7 +44,9 @@ public class AngelMovement : MonoBehaviour
             step = new Vector2Int(0, (int)Mathf.Sign(delta.y));
 
         Vector2Int stepPosition = angelGridPosition + step;
-        if (!IsWalkable(mazeFloor, stepPosition) && delta.x != 0 && delta.y != 0)
+
+        bool[,] floor = mazeData.GetFloorData();
+        if (!IsWalkable(floor, stepPosition) && delta.x != 0 && delta.y != 0)
         {
             // If the preferred side of a diagonal route is blocked, try its other side.
             step = step.x != 0
@@ -53,13 +55,16 @@ public class AngelMovement : MonoBehaviour
             stepPosition = angelGridPosition + step;
         }
 
-        if (IsWalkable(mazeFloor, stepPosition))
+        if (IsWalkable(floor, stepPosition))
         {
             // Set the facing direction
             rotationTarget = Quaternion.LookRotation(new Vector3(step.x, 0f, step.y), Vector3.up);
             isRotating = true;
 
-            movementTarget = mazeGridToWorld(stepPosition, mazeFloor);
+            movementTarget = mazeGridToWorld(stepPosition, floor);
+            movementStartPosition = transform.position;
+            movementGridTarget = stepPosition;
+            returningToStart = false;
             isMoving = true;
         }
     }
@@ -84,11 +89,20 @@ public class AngelMovement : MonoBehaviour
         if (!isMoving)
             return;
 
+        // A wall may be placed after the path was calculated but before this
+        // step finishes. Abort the step instead of entering the blocked tile.
+        if (!returningToStart && !IsWalkable(mazeData.GetFloorData(), movementGridTarget))
+        {
+            movementTarget = movementStartPosition;
+            returningToStart = true;
+        }
+
         transform.position = Vector3.MoveTowards(transform.position, movementTarget, smoothMoveSpeed * Time.deltaTime);
         if ((transform.position - movementTarget).sqrMagnitude < 0.0001f)
         {
             transform.position = movementTarget;
             isMoving = false;
+            returningToStart = false;
         }
     }
 
@@ -125,11 +139,11 @@ public class AngelMovement : MonoBehaviour
     }
 
 
-    public void InitialiseGrid(bool[,] grid)
+    public void InitialiseGrid()
     {
-        bool[,] walkableGrid = grid;
-        int width = grid.GetLength(0);
-        int height = grid.GetLength(1);
+        bool[,] walkableGrid = mazeData.GetFloorData();
+        int width = walkableGrid.GetLength(0);
+        int height = walkableGrid.GetLength(1);
         nodes = new Node[width, height];
 
         // Create nodes only for walkable tiles
