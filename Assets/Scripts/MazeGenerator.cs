@@ -29,10 +29,9 @@ public class MazeGenerator : MonoBehaviour
     public int seed = 0;
 
     [Header("Behaviour")]
-    public bool generateOnStart = true;
+    public bool generateOnStart = false;
 
-    public GameObject centreAnchor;
-    private Vector3 centrePosition => centreAnchor != null ? centreAnchor.transform.position : transform.position;
+    public Vector3 centrePosition;
 
     private bool[,] walls; // true = wall, false = open passage. Indexed [x, y].
     private bool[,] floor; // true = open floor, the inverse of walls
@@ -48,6 +47,16 @@ public class MazeGenerator : MonoBehaviour
     private void Start()
     {
         if (generateOnStart) Generate();
+    }
+
+    public bool[,] GetWallData()
+    {
+        return walls;
+    }
+
+    public bool[,] GetFloorData()
+    {
+        return floor;
     }
 
     [ContextMenu("Generate")]
