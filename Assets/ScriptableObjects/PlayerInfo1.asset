@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: PlayerInfo1
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInfo
   mainPosition: {x: 0, y: 5, z: 10}
-  otherPosition: {x: 0, y: 0, z: 0}
+  otherPosition: {x: 0, y: 5, z: 0}
   rotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}

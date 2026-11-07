@@ -60,6 +60,6 @@ public class UIManager : MonoBehaviour
 
     private void UpdateGlobalTime(float prev, float nextf) {
         int next = (int)nextf;
-        mainTimerText.text = $"{(int)90/60}:{next%60}";
+        mainTimerText.text = $"{(int)90/60}:{next%60:D2}";
     }
 }
