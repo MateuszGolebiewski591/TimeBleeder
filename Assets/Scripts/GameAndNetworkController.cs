@@ -2,10 +2,11 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 
-public class NetworkAndGameController : NetworkBehaviour
+public class GameAndNetworkController : NetworkBehaviour
 {
     [SerializeField] private Transform playerPrefab;
     [SerializeField] private string gameSceneName;
+    private PlayerController player;
     public override void OnNetworkSpawn()
     {
         if (IsServer) NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
@@ -19,7 +20,6 @@ public class NetworkAndGameController : NetworkBehaviour
             if (NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject != null) continue;
             Transform player = Instantiate(playerPrefab);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
-            Debug.Log($"Spawned player for client {clientId}");
         }
     }
 }

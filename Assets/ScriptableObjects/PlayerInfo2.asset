@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30162a438c2a7ee45b496cfbe6194b04, type: 3}
   m_Name: PlayerInfo2
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInfo
-  mainPosition: {x: 0, y: 0, z: 0}
+  mainPosition: {x: 0, y: 5, z: -10}
   otherPosition: {x: 0, y: 0, z: 0}
   angle: {x: 0, y: 0, z: 0, w: 0}
