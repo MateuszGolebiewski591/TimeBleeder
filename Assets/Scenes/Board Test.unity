@@ -277,8 +277,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8193902dd1565984695e5280a1dd6952, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeGenerator
-  width: 15
-  height: 15
+  width: 12
+  height: 8
   wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
   tileSize: 1
   wallHeight: 0.5
@@ -305,6 +305,7 @@ MonoBehaviour:
   player: {fileID: 265900403}
   angel: {fileID: 1906801160}
   centreAnchor: {fileID: 0}
+  angelMoveSpeed: 3
 --- !u!4 &784968220
 Transform:
   m_ObjectHideFlags: 0
@@ -519,6 +520,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19519be1d280a4c4e9ea451abfb858e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AngelMovement
+  smoothMoveSpeed: 5
+  smoothRotationSpeed: 360
 --- !u!1 &2055470996
 GameObject:
   m_ObjectHideFlags: 0

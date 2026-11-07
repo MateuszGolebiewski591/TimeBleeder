@@ -5,16 +5,98 @@ using System.Collections.Generic;
 
 public class AngelMovement : MonoBehaviour
 {
+    public float smoothMoveSpeed = 5f; // Speed at which the angel moves (smoothly)
+    public float smoothRotationSpeed = 360f; // Rotation speed in degrees per second
     private bool[,] mazeFloor; // true = open floor, the inverse of walls
     private Node[,] nodes; // Need nodes as the 2D array doesn't work with Dijkstra's
     
     private Vector2Int currentPosition; 
     private Vector2Int targetPosition;
+    private Vector3 movementTarget;
+    private bool isMoving;
+    private Quaternion rotationTarget;
+    private bool isRotating;
 
     public void SetMazeData(bool[,] floor)
     {
         mazeFloor = floor;
         InitialiseGrid(floor);
+    }
+
+    // Passes mazeGridToWorld so angel can just do it itself
+    public void MoveAngel(Vector2Int angelGridPosition, Vector2Int playerGridPosition, System.Func<Vector2Int, bool[,], Vector3> mazeGridToWorld)
+    {
+        // Keep the current destination until the angel reaches it, rather than
+        // recalculating a new destination while it is still moving.
+        if (isMoving)
+            return;
+
+        // Move the angel
+        Vector2Int nextPosition = MoveTowardsPlayer(angelGridPosition, playerGridPosition);
+        Vector2Int delta = nextPosition - angelGridPosition;
+        if (delta == Vector2Int.zero)
+            return;
+
+        Vector2Int step;
+        if (Mathf.Abs(delta.x) >= Mathf.Abs(delta.y) && delta.x != 0)
+            step = new Vector2Int((int)Mathf.Sign(delta.x), 0);
+        else
+            step = new Vector2Int(0, (int)Mathf.Sign(delta.y));
+
+        Vector2Int stepPosition = angelGridPosition + step;
+        if (!IsWalkable(mazeFloor, stepPosition) && delta.x != 0 && delta.y != 0)
+        {
+            // If the preferred side of a diagonal route is blocked, try its other side.
+            step = step.x != 0
+                ? new Vector2Int(0, (int)Mathf.Sign(delta.y))
+                : new Vector2Int((int)Mathf.Sign(delta.x), 0);
+            stepPosition = angelGridPosition + step;
+        }
+
+        if (IsWalkable(mazeFloor, stepPosition))
+        {
+            // Set the facing direction
+            rotationTarget = Quaternion.LookRotation(new Vector3(step.x, 0f, step.y), Vector3.up);
+            isRotating = true;
+
+            movementTarget = mazeGridToWorld(stepPosition, mazeFloor);
+            isMoving = true;
+        }
+    }
+
+    // Smoothed rotation and movement
+    private void Update()
+    {
+        if (isRotating)
+        {
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                rotationTarget,
+                smoothRotationSpeed * Time.deltaTime);
+
+            if (Quaternion.Angle(transform.rotation, rotationTarget) < 0.1f)
+            {
+                transform.rotation = rotationTarget;
+                isRotating = false;
+            }
+        }
+
+        if (!isMoving)
+            return;
+
+        transform.position = Vector3.MoveTowards(transform.position, movementTarget, smoothMoveSpeed * Time.deltaTime);
+        if ((transform.position - movementTarget).sqrMagnitude < 0.0001f)
+        {
+            transform.position = movementTarget;
+            isMoving = false;
+        }
+    }
+
+    private bool IsWalkable(bool[,] mazeFloor, Vector2Int position)
+    {
+        return position.x >= 0 && position.x < mazeFloor.GetLength(0)
+            && position.y >= 0 && position.y < mazeFloor.GetLength(1)
+            && mazeFloor[position.x, position.y];
     }
 
     public Vector2Int MoveTowardsPlayer(Vector2Int angelPosition, Vector2Int playerPosition)
@@ -23,7 +105,7 @@ public class AngelMovement : MonoBehaviour
         targetPosition = playerPosition;
 
         List<Node> path = FindPath(currentPosition, targetPosition);
-        return new Vector2Int(moveToNextTile(path).x, moveToNextTile(path).y);
+        return moveToNextTile(path);
     }
 
     private Vector2Int moveToNextTile(List<Node> path)
@@ -78,17 +160,15 @@ public class AngelMovement : MonoBehaviour
         int[] dx = { 1, -1, 0, 0 }; // Cardinal directions
         int[] dy = { 0, 0, 1, -1 };
 
+        // No diagonal movement, so only connect cardinal neighbors (N, S, E, W)
         for (int i = 0; i < 4; i++)
         {
             int nx = x + dx[i];
             int ny = y + dy[i];
 
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height)
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height && walkableGrid[nx, ny])
             {
-                if (walkableGrid[nx, ny])
-                {
-                    nodes[x, y].AddNeighbor(nodes[nx, ny], 1.0f); // Cost = 1
-                }
+                nodes[x, y].AddNeighbor(nodes[nx, ny], 1.0f); // Cost=1
             }
         }
     }

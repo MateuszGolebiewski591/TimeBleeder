@@ -11,7 +11,10 @@ public class BoardController : MonoBehaviour
     private MazeGenerator mazeGenerator;
     private float tileSize = 1f;
 
+    [Header("Angel Settings")]
+    public float angelMoveSpeed = 1f;
     private AngelMovement angelMovement;
+    private float angelMoveTimer;
 
     void Start()
     {
@@ -40,10 +43,17 @@ public class BoardController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Call angel movement and provide the maze data to it
-        if (angelMovement != null && mazeGenerator != null)
+        if (angelMovement == null || mazeGenerator == null || angel == null || player == null || angelMoveSpeed <= 0f)
+            return;
+
+        angelMoveTimer += Time.fixedDeltaTime;
+        float moveInterval = 1f / angelMoveSpeed;
+
+        if (angelMoveTimer >= moveInterval)
         {
+            angelMoveTimer = 0f;
             bool[,] mazeFloor = mazeGenerator.GetFloorData();
+
             angelMovement.SetMazeData(mazeFloor);
 
             Vector3 angelPosition = angel.transform.position;
@@ -51,12 +61,11 @@ public class BoardController : MonoBehaviour
 
             Vector2Int angelGridPosition = WorldToMazeGrid(angelPosition, mazeFloor);
             Vector2Int playerGridPosition = WorldToMazeGrid(playerPosition, mazeFloor);
-            
-            // Move the angel
-            Vector2Int nextPosition = angelMovement.MoveTowardsPlayer(angelGridPosition, playerGridPosition);
-            angel.transform.position = MazeGridToWorld(nextPosition, mazeFloor);
+
+            angelMovement.MoveAngel(angelGridPosition, playerGridPosition, MazeGridToWorld);
         }
     }
+
 
     Vector2Int WorldToMazeGrid(Vector3 worldPosition, bool[,] mazeFloor)
     {
