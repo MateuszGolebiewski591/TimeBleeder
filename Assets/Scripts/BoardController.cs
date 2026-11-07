@@ -21,8 +21,8 @@ public class BoardController : MonoBehaviour
     void Start()
     {
         ganc = FindFirstObjectByType<GameAndNetworkController>();
-        ganc.Board1Blocks.OnListChanged += UpdateBoard1;
-        ganc.Board2Blocks.OnListChanged += UpdateBoard2;
+        ganc.board1Blocks.OnListChanged += UpdateBoard1;
+        ganc.board2Blocks.OnListChanged += UpdateBoard2;
     }
 
     public void SwitchDisplay(PlayerController.Mode mode) {

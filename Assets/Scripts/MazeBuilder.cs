@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Netcode;
 
 public class MazeBuilder : MonoBehaviour
 {
@@ -10,6 +11,101 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private GameObject wallPrefab; 
     [SerializeField] private Material material; 
     [SerializeField] private Material floorMaterial;
+    private bool widthReceived = false;
+    private bool heightReceived = false;
+    private int width;
+    private int height;
+    private bool initialised = false;
+    private GameAndNetworkController ganc;
+    bool[,] board1Matrix;
+    bool[,] board2Matrix;
+
+
+    private void Start()
+    {
+        ganc = FindFirstObjectByType<GameAndNetworkController>();
+
+    
+        ganc.board1Blocks.OnListChanged += OnBoard1BlocksChanged;
+        ganc.board2Blocks.OnListChanged += OnBoard2BlocksChanged;
+
+        ganc.width.OnValueChanged += OnWidthChanged;
+        ganc.height.OnValueChanged += OnHeightChanged;
+
+        // Read their current values in case they arrived before Start.
+        width = ganc.width.Value;
+        height = ganc.height.Value;
+
+        widthReceived = width > 0;
+        heightReceived = height > 0;
+
+        TryInitialise();
+    }
+
+    private void OnBoard1BlocksChanged(NetworkListEvent<BlockData> changeEvent)
+    {
+        TryInitialise();
+    }
+
+    private void OnBoard2BlocksChanged(NetworkListEvent<BlockData> changeEvent)
+    {
+        TryInitialise();
+    }
+
+    private void OnWidthChanged(int previous, int next)
+    {
+        width = next;
+        widthReceived = next > 0;
+        TryInitialise();
+    }
+
+    private void OnHeightChanged(int previous, int next)
+    {
+        height = next;
+        heightReceived = next > 0;
+        TryInitialise();
+    }
+
+    private void TryInitialise()
+    {
+        if (initialised || !widthReceived || !heightReceived)
+            return;
+
+        int expectedLength = width * height;
+
+        if (ganc.board1Blocks.Count < expectedLength ||
+            ganc.board2Blocks.Count < expectedLength)
+            return;
+
+        // We have received all the required data.
+        initialised = true;
+
+        InitialiseBoard1();
+        InitialiseBoard2();
+    }
+
+    private void InitialiseBoard1() {
+        board1Matrix = new bool[width,height]; 
+        for (int i = 0; i < ganc.board1Blocks.Count; i++)
+        {
+            BlockData block = ganc.board1Blocks[i];
+            board1Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
+        }
+
+        //Build(board1Matrix, );
+    }
+
+    private void InitialiseBoard2() {
+        board2Matrix = new bool[width,height]; 
+        for (int i = 0; i < ganc.board2Blocks.Count; i++)
+        {
+            BlockData block = ganc.board2Blocks[i];
+            board2Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
+        }
+
+        //Build(board2Matrix, );
+    }
+
 
     private Material MakeDefaultMaterial(Color color)
     {

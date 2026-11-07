@@ -4,33 +4,30 @@ using System;
 
 public struct BlockData : INetworkSerializable, IEquatable<BlockData>
 {
-    public Vector2 pos;
-    public bool CanBeRaised;
-    public bool CanBeLowered;
-    public bool CanBeOccupied;
+    public int posWidth;
+    public int posHeight;
+    public bool canBeRaised;
 
-    public BlockData(Vector2 position, bool raised, bool lowered, bool occupied)
+    public BlockData(int width, int height, bool raised)
     {
-        pos = position;
-        CanBeRaised = raised;
-        CanBeLowered = lowered;
-        CanBeOccupied = occupied;
+        posWidth = width;
+        posHeight = height;
+
+        canBeRaised = raised;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer)
         where T : IReaderWriter
     {
-        serializer.SerializeValue(ref pos);
-        serializer.SerializeValue(ref CanBeRaised);
-        serializer.SerializeValue(ref CanBeLowered);
-        serializer.SerializeValue(ref CanBeOccupied);
+        serializer.SerializeValue(ref posWidth);
+        serializer.SerializeValue(ref posWidth);
+        serializer.SerializeValue(ref canBeRaised);
     }
 
     public bool Equals(BlockData other)
     {
-        return pos.Equals(other.pos)
-            && CanBeRaised == other.CanBeRaised
-            && CanBeLowered == other.CanBeLowered
-            && CanBeOccupied == other.CanBeOccupied;
+        return posWidth == other.posWidth
+            && posHeight == other.posHeight
+            && canBeRaised == other.canBeRaised;
     }
 }

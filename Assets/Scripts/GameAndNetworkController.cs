@@ -29,11 +29,7 @@ public class GameAndNetworkController : NetworkBehaviour
     public float spawnDistanceFromPlayer = 5f;
 
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
-    private Dictionary<Vector2Int, List<Vector2Int>> floorGraph1 = new Dictionary<Vector2Int, List<Vector2Int>>();
-    private Dictionary<Vector2Int, List<Vector2Int>> wallGraph1 = new Dictionary<Vector2Int, List<Vector2Int>>();
-
-    private Dictionary<Vector2Int, List<Vector2Int>> floorGraph2 = new Dictionary<Vector2Int, List<Vector2Int>>();
-    private Dictionary<Vector2Int, List<Vector2Int>> wallGraph2 = new Dictionary<Vector2Int, List<Vector2Int>>();
+    
 
 
     public enum GameState {
@@ -49,18 +45,24 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
 
-    public NetworkList<BlockData> Board1Blocks = new NetworkList<BlockData>();
-    public NetworkList<BlockData> Board2Blocks = new NetworkList<BlockData>();
 
     public NetworkVariable<bool> player1Ready;
     public NetworkVariable<bool> player2Ready;
     public NetworkVariable<int> countDownTime;
 
+    public NetworkList<BlockData> board1Blocks = new NetworkList<BlockData>();
+    public NetworkList<BlockData> board2Blocks = new NetworkList<BlockData>();
+    public NetworkVariable<bool> boardsInitialised;
+    public NetworkVariable<int> width;
+    public NetworkVariable<int> height;
+
+    //public NetworkVariable<>
+
     // Controls when the angel can next move
     private float board1AngelTimer;
     private float board2AngelTimer;
 
-    private void Start()
+    private void StartMazeGeneration()
     {
         if (!IsServer) return;
 
@@ -69,6 +71,31 @@ public class GameAndNetworkController : NetworkBehaviour
 
         InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre);
         InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre);
+        bool[,] board1data = board1MazeData.GetFloorData();
+        bool[,] board2data = board2MazeData.GetFloorData();
+        int width = board1MazeData.width;
+        int height = board1MazeData.height; 
+
+        List<BlockData> blocks1 = new List<BlockData>();
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                blocks1.Add(new BlockData(i, j, board1data[i, j]));
+            }
+        }
+        foreach (BlockData block in blocks1) {
+            board1Blocks.Add(block);
+        }
+
+        List<BlockData> blocks2 = new List<BlockData>();
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                blocks2.Add(new BlockData(i, j, board2data[i, j]));
+            }
+        }
+        foreach (BlockData block in blocks2) {
+            board2Blocks.Add(block);
+        }
+        boardsInitialised.Value = true;
     }
 
     private void FixedUpdate()
@@ -158,6 +185,7 @@ public class GameAndNetworkController : NetworkBehaviour
             playerReady.Add(1, false);
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
+            StartMazeGeneration();
         }
     }
 
