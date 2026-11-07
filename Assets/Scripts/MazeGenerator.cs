@@ -181,7 +181,7 @@ public class MazeGenerator : MonoBehaviour
                 if (!walls[x, y]) continue;
                 SpawnBlock(
                     "Wall " + x + "," + y,
-                    centrePosition + new Vector3(
+                    new Vector3(
                         (x - (gridW - 1) * 0.5f) * tileSize,
                         wallHeight * 0.5f,
                         (y - (gridH - 1) * 0.5f) * tileSize),

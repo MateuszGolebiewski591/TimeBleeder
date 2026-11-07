@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc552b117f5c1e74db633f9ba1ab8ff9, type: 3}
   m_Name: MazeData1
   m_EditorClassIdentifier: Assembly-CSharp::MazeData
-  wallPrefab: {fileID: 0}
+  wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
   tileSize: 1
   wallHeight: 0.5

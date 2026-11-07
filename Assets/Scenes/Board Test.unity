@@ -242,85 +242,10 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 784968220}
+  - {fileID: 1445795830}
   - {fileID: 265900404}
   - {fileID: 1906801161}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &784968217
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 784968220}
-  - component: {fileID: 784968219}
-  - component: {fileID: 784968218}
-  m_Layer: 0
-  m_Name: BoardController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &784968218
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 784968217}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8193902dd1565984695e5280a1dd6952, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MazeGenerator
-  width: 3
-  height: 3
-  wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
-  tileSize: 1
-  wallHeight: 0.5
-  buildFloor: 1
-  material: {fileID: 0}
-  floorMaterial: {fileID: 0}
-  frameMainCamera: 1
-  useSeed: 0
-  seed: 0
-  generateOnStart: 0
-  centrePosition: {x: 0, y: 0, z: 0}
---- !u!114 &784968219
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 784968217}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a8d0ac0f20e4ddc498e63a352c51956b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoardController
-  player: {fileID: 265900403}
-  angel: {fileID: 1906801160}
-  centreAnchor: {fileID: 0}
-  angelMoveSpeed: 3
-  spawnDistanceFromPlayer: 5
---- !u!4 &784968220
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 784968217}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 742435169}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &942905087
 GameObject:
@@ -521,6 +446,93 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8997220557647773741, guid: 83178240cb0117b4fa64ecf67958fa50, type: 3}
   m_PrefabInstance: {fileID: 945126456}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1445795829
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1445795830}
+  - component: {fileID: 1445795833}
+  - component: {fileID: 1445795832}
+  - component: {fileID: 1445795831}
+  m_Layer: 0
+  m_Name: Board
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1445795830
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1445795829}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 742435169}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1445795831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1445795829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8193902dd1565984695e5280a1dd6952, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MazeGenerator
+  mazeData: {fileID: 11400000, guid: 324d7e31a78d2db4098c8c32d51f3f8e, type: 2}
+  width: 15
+  height: 15
+  buildFloor: 1
+  material: {fileID: 0}
+  floorMaterial: {fileID: 0}
+  frameMainCamera: 1
+  useSeed: 0
+  seed: 0
+  generateOnStart: 0
+  centrePosition: {x: 0, y: 0, z: 0}
+--- !u!114 &1445795832
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1445795829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afc3ed1cbd8c6ab4197210f037a68b5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MazeController
+  mazeData: {fileID: 11400000, guid: 324d7e31a78d2db4098c8c32d51f3f8e, type: 2}
+  centreAnchor: {fileID: 0}
+--- !u!114 &1445795833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1445795829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8d0ac0f20e4ddc498e63a352c51956b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardController
+  player: {fileID: 265900403}
+  angel: {fileID: 1906801160}
+  angelMoveSpeed: 3
+  spawnDistanceFromPlayer: 5
 --- !u!1 &1906801160
 GameObject:
   m_ObjectHideFlags: 0
@@ -568,6 +580,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AngelMovement
   smoothMoveSpeed: 5
   smoothRotationSpeed: 360
+  mazeData: {fileID: 11400000, guid: 324d7e31a78d2db4098c8c32d51f3f8e, type: 2}
 --- !u!1 &2055470996
 GameObject:
   m_ObjectHideFlags: 0
