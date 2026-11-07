@@ -75,7 +75,7 @@ public class BoardController : MonoBehaviour
         Vector2Int angelGridPosition = mazeController.WorldToMazeGrid(angel.transform.position);
         Vector2Int playerGridPosition = mazeController.WorldToMazeGrid(player.transform.position);
 
-        if (!mazeController.QueryWallRaise(position, angelGridPosition, playerGridPosition))
+        if (!mazeController.CanRaiseWall(position, angelGridPosition, playerGridPosition))
             return false;
 
         mazeController.RaiseWall(position);
