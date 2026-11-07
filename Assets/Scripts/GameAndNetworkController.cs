@@ -57,10 +57,19 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<int> width;
     public NetworkVariable<int> height;
 
+    // Server-authoritative angel tiles. The server pathfinds and writes these;
+    // every peer reads them and animates its angel towards them.
+    public NetworkVariable<Vector2Int> board1AngelGrid = new NetworkVariable<Vector2Int>();
+    public NetworkVariable<Vector2Int> board2AngelGrid = new NetworkVariable<Vector2Int>();
+
 
     // Controls when the angel can next move
     private float board1AngelTimer;
     private float board2AngelTimer;
+
+    // Last angel tile each peer applied to its visuals
+    private Vector2Int? board1AngelShown;
+    private Vector2Int? board2AngelShown;
 
     private void StartMazeGeneration()
     {
@@ -69,8 +78,8 @@ public class GameAndNetworkController : NetworkBehaviour
         if (mazeController == null)
             mazeController = GetComponent<MazeController>();
 
-        InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre);
-        InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre);
+        InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre, board1AngelGrid);
+        InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre, board2AngelGrid);
 
         bool[,] board1data = board1MazeData.GetFloorData();
         bool[,] board2data = board2MazeData.GetFloorData();
@@ -105,8 +114,34 @@ public class GameAndNetworkController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        TickAngel(board1, board1MazeData, ref board1AngelTimer);
-        TickAngel(board2, board2MazeData, ref board2AngelTimer);
+        TickAngel(board1, board1MazeData, board1AngelGrid, ref board1AngelTimer);
+        TickAngel(board2, board2MazeData, board2AngelGrid, ref board2AngelTimer);
+    }
+
+    // Every peer (host included): animate the angels towards the server's chosen tiles
+    private void Update()
+    {
+        if (!IsSpawned || !boardsInitialised.Value) return;
+
+        ShowAngel(board1, board1MazeData, board1MazeCentre, board1AngelGrid.Value, ref board1AngelShown);
+        ShowAngel(board2, board2MazeData, board2MazeCentre, board2AngelGrid.Value, ref board2AngelShown);
+    }
+
+    private void ShowAngel(BoardController board, MazeData mazeData, Transform mazeCentre, Vector2Int angelGrid, ref Vector2Int? shown)
+    {
+        if (board == null || board.angel == null || mazeData == null) return;
+        if (shown == angelGrid) return;
+
+        Transform root = GetMazeRoot(board, mazeCentre);
+        if (root == null || width.Value <= 0 || height.Value <= 0) return;
+
+        Vector3 target = MazeController.GridToWorld(root.position, width.Value, height.Value, mazeData.tileSize, angelGrid);
+        bool snap = shown == null; // First placement jumps straight there
+
+        if (board.AngelMovement != null) board.AngelMovement.SetTarget(target, snap);
+        else board.angel.transform.position = target;
+
+        shown = angelGrid;
     }
 
     public MazeData GetMazeData(BoardController board)
@@ -122,7 +157,7 @@ public class GameAndNetworkController : NetworkBehaviour
         return board != null ? board.transform : null;
     }
 
-    private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre)
+    private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre, NetworkVariable<Vector2Int> angelGridVar)
     {
         if (board == null) return;
         if (mazeController == null) return;
@@ -140,8 +175,8 @@ public class GameAndNetworkController : NetworkBehaviour
 
             if (board.angel != null)
             {
-                Vector2Int angelGrid = mazeController.FindRandomWalkablePosition(mazeData, playerGrid, spawnDistance);
-                PlaceOnGrid(board.angel.transform, mazeData, angelGrid);
+                // Every peer places the angel from this (see ShowAngel)
+                angelGridVar.Value = mazeController.FindRandomWalkablePosition(mazeData, playerGrid, spawnDistance);
             }
         }
     }
@@ -151,18 +186,18 @@ public class GameAndNetworkController : NetworkBehaviour
         character.position = mazeController.MazeGridToWorld(mazeData, gridPosition);
     }
 
-    private void TickAngel(BoardController board, MazeData mazeData, ref float timer)
+    // Server only: pathfind one step towards the player and publish the new tile
+    private void TickAngel(BoardController board, MazeData mazeData, NetworkVariable<Vector2Int> angelGridVar, ref float timer)
     {
         if (board == null || mazeData == null || !mazeData.IsGenerated || mazeController == null) return;
-        if (board.AngelMovement == null || board.angel == null || board.player == null || angelMoveSpeed <= 0f) return;
+        if (board.angel == null || board.player == null || angelMoveSpeed <= 0f) return;
 
         timer += Time.fixedDeltaTime;
         if (timer < 1f / angelMoveSpeed) return;
         timer = 0f;
 
-        Vector2Int angelGrid = mazeController.WorldToMazeGrid(mazeData, board.angel.transform.position);
         Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
-        board.AngelMovement.MoveAngel(angelGrid, playerGrid, (grid, _) => mazeController.MazeGridToWorld(mazeData, grid));
+        angelGridVar.Value = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
     }
 
     // Only raises the wall if the angel can still reach the player
@@ -171,7 +206,8 @@ public class GameAndNetworkController : NetworkBehaviour
         MazeData mazeData = GetMazeData(board);
         if (mazeData == null || !mazeData.IsGenerated || mazeController == null) return false;
 
-        Vector2Int angelGrid = mazeController.WorldToMazeGrid(mazeData, board.angel.transform.position);
+        // Use the angel's logical tile, which is already the tile it's moving into
+        Vector2Int angelGrid = board == board1 ? board1AngelGrid.Value : board2AngelGrid.Value;
         Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
 
         if (!mazeController.CanRaiseWall(mazeData, position, angelGrid, playerGrid))

@@ -77,13 +77,19 @@ public class MazeController : MonoBehaviour
     public Vector3 MazeGridToWorld(MazeData mazeData, Vector2Int gridPosition)
     {
         bool[,] mazeFloor = mazeData.GetFloorData();
-        float tileSize = mazeData.tileSize;
-        float originX = mazeData.Centre.x - mazeFloor.GetLength(0) * tileSize * 0.5f;
-        float originZ = mazeData.Centre.z - mazeFloor.GetLength(1) * tileSize * 0.5f;
+        return GridToWorld(mazeData.Centre, mazeFloor.GetLength(0), mazeFloor.GetLength(1), mazeData.tileSize, gridPosition);
+    }
+
+    // Same conversion without needing generated maze data, so clients can use it
+    // with the synced grid size and the maze root's position
+    public static Vector3 GridToWorld(Vector3 centre, int gridWidth, int gridHeight, float tileSize, Vector2Int gridPosition)
+    {
+        float originX = centre.x - gridWidth * tileSize * 0.5f;
+        float originZ = centre.z - gridHeight * tileSize * 0.5f;
 
         float worldX = originX + (gridPosition.x + 0.5f) * tileSize;
         float worldZ = originZ + (gridPosition.y + 0.5f) * tileSize;
-        return new Vector3(worldX, mazeData.Centre.y, worldZ);
+        return new Vector3(worldX, centre.y, worldZ);
     }
 
     public bool IsWalkable(bool[,] mazeFloor, Vector2Int position)
