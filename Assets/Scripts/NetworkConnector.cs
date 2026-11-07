@@ -18,14 +18,7 @@ public class NetworkConnector : NetworkBehaviour
 
     void Start()
     {
-        NetworkManager.Singleton.ConnectionApprovalCallback += ApproveRequest;
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-    }
-
-    private void ApproveRequest(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
-    {
-        response.Approved = true;
-        response.CreatePlayerObject = false; //We spawn player in manually
     }
 
     private void OnClientConnected(ulong clientId)

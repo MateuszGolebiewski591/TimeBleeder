@@ -1,15 +1,50 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
+using System.Collections;
+using System;
 
 public class GameAndNetworkController : NetworkBehaviour
 {
     [SerializeField] private Transform playerPrefab;
     [SerializeField] private string gameSceneName;
+    [SerializeField] private float timeLimit = 90f;
     private PlayerController player;
+
+    private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
+
+    public enum GameState {
+        ReadyUp,
+        CountDown,
+        GameActive
+    }
+
+    public NetworkVariable<GameState> state;
+    public NetworkVariable<float> GlobalTime;
+    public NetworkVariable<float> Player1TimeGained;
+    public NetworkVariable<float> Player2TimeGained;
+    public NetworkList<BlockData> Board1Blocks = new NetworkList<BlockData>();
+    public NetworkList<BlockData> Board2Blocks = new NetworkList<BlockData>();
+
+    public NetworkVariable<bool> player1Ready;
+    public NetworkVariable<bool> player2Ready;
+    public NetworkVariable<int> countDownTime;
+
+
     public override void OnNetworkSpawn()
     {
-        if (IsServer) NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
+        if (IsServer) {
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
+            state.Value = GameState.ReadyUp;
+            Player1TimeGained.Value = 0;
+            Player2TimeGained.Value = 0;
+            GlobalTime.Value = (int)timeLimit;
+            player1Ready.Value = false;
+            player1Ready.Value = false;
+            playerReady.Add(0, false);
+            playerReady.Add(1, false);
+            countDownTime.Value = 3;
+        }
     }
 
     private void SceneManager_OnLoadEventCompleted(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
@@ -21,5 +56,46 @@ public class GameAndNetworkController : NetworkBehaviour
             Transform player = Instantiate(playerPrefab);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
         }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void ReadyRPC(RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
+        if (!playerReady[playerID]) {
+            playerReady[playerID] = true;
+            if (playerID == 0) player1Ready.Value = true;
+            else if (playerID == 1) player2Ready.Value = true;
+        }
+        bool ready = true;
+        foreach (ulong key in playerReady.Keys) {
+            if (!playerReady[key]) ready = false;
+        }
+        if (ready) {
+            state.Value = GameState.CountDown;
+            StartCoroutine(CountDownTimer()); 
+        }
+    }
+
+    private IEnumerator CountDownTimer() {
+        float time = 3f; 
+        while (time > 0) {
+            countDownTime.Value = (int)Math.Floor(time);
+            time -= Time.deltaTime;
+            yield return null;
+        }
+        state.Value = GameState.GameActive;
+        StartCoroutine(GlobalTimerCountdown());
+        Player1Turn();
+    }
+
+    private IEnumerator GlobalTimerCountdown() {
+        while (state.Value == GameState.GameActive) {
+            GlobalTime.Value -= Time.deltaTime;
+            yield return null; 
+        }
+    }
+
+    private void Player1Turn() {
+
     }
 }

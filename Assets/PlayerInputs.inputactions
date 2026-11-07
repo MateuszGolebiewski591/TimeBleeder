@@ -65,6 +65,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "77603222-cab0-487e-bafa-1b19ad4fd86d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -74,7 +84,7 @@
                     "path": "<Keyboard>/w",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "MoveForwards",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -85,7 +95,7 @@
                     "path": "<Keyboard>/s",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "MoveBack",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -96,7 +106,7 @@
                     "path": "<Keyboard>/1",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "RaiseTile",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -107,7 +117,7 @@
                     "path": "<Keyboard>/2",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "LowerTile",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -118,7 +128,7 @@
                     "path": "<Keyboard>/3",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "MovePiece",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -129,8 +139,30 @@
                     "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";PlayerControls",
                     "action": "StopTime",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b05888a7-5588-47d7-a6d2-4e73f121f51f",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";PlayerControls",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0b101047-947c-48ac-9f4b-64bca74b7b94",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
