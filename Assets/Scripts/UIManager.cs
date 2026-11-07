@@ -28,6 +28,8 @@ public class UIManager : MonoBehaviour
         ganc.state.OnValueChanged += GameStateChange;
         ganc.countDownTime.OnValueChanged += UpdateTimer;
         ganc.GlobalTime.OnValueChanged += UpdateGlobalTime;
+        ganc.player1TimeGained.OnValueChanged += UpdatePlayer1Time;
+        ganc.player2TimeGained.OnValueChanged += UpdatePlayer2Time;
     }
 
     private void UpdateReadyUpPanel1(bool previousStatus, bool newStatus) {

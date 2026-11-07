@@ -20,6 +20,7 @@ public class PlayerController : NetworkBehaviour
 
     private Coroutine movingForward = null;
     private Coroutine movingBackward = null;
+    private bool isMyTurn = false;
 
     public enum Mode{
         raise, 
@@ -48,8 +49,14 @@ public class PlayerController : NetworkBehaviour
             gameObject.GetComponent<AudioListener>().enabled = true;
             board1 = ganc.board1;
             board2 = ganc.board2;
+            ganc.currentPlayer.OnValueChanged += UpdateTurn;
         }
         yield return null;
+    }
+
+    private void UpdateTurn(ulong prev, ulong nextu) {
+        if (nextu == OwnerClientId) isMyTurn = true;
+        else isMyTurn = false;
     }
 
     void Update() {
@@ -90,9 +97,15 @@ public class PlayerController : NetworkBehaviour
     }
 
     private void RayCast() {
+        if (!isMyTurn) return;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
+            if (hit.collider.gameObject.GetComponent<TimeTurner>() != null) {
+                hit.collider.gameObject.GetComponent<TimeTurner>().TriggerAnimation();
+                ganc.SwitchTurnRPC();
+                return;
+            }
             Vector3 blockPos = hit.collider.gameObject.transform.position;
             MazeData mazeData = ganc.Maze.FindMazeData(hit.collider.transform);
             if (mazeData == null) return;

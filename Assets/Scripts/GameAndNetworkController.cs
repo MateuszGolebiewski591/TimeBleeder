@@ -45,8 +45,9 @@ public class GameAndNetworkController : NetworkBehaviour
 
     public NetworkVariable<GameState> state;
     public NetworkVariable<float> GlobalTime;
-    public NetworkVariable<float> Player1TimeGained;
-    public NetworkVariable<float> Player2TimeGained;
+    public NetworkVariable<ulong> currentPlayer;
+    public NetworkVariable<float> player1TimeGained;
+    public NetworkVariable<float> player2TimeGained;
 
     public NetworkList<BlockData> Board1Blocks = new NetworkList<BlockData>();
     public NetworkList<BlockData> Board2Blocks = new NetworkList<BlockData>();
@@ -148,14 +149,15 @@ public class GameAndNetworkController : NetworkBehaviour
         if (IsServer) {
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
             state.Value = GameState.ReadyUp;
-            Player1TimeGained.Value = 0;
-            Player2TimeGained.Value = 0;
+            player1TimeGained.Value = 0;
+            player2TimeGained.Value = 0;
             GlobalTime.Value = (int)timeLimit;
             player1Ready.Value = false;
             player1Ready.Value = false;
             playerReady.Add(0, false);
             playerReady.Add(1, false);
             countDownTime.Value = 3;
+            currentPlayer.Value = 0;
         }
     }
 
@@ -197,22 +199,16 @@ public class GameAndNetworkController : NetworkBehaviour
         }
         state.Value = GameState.GameActive;
         StartCoroutine(GlobalTimerCountdown());
-        Player1Turn();
     }
 
     private IEnumerator GlobalTimerCountdown() {
         while (state.Value == GameState.GameActive) {
             GlobalTime.Value -= Time.deltaTime;
+            if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
+            else player2TimeGained.Value += Time.deltaTime;
             yield return null; 
         }
-    }
-
-    private void Player1Turn() {
-
-    }
-
-    private void Player2Turn() {
-
+        currentPlayer.Value = 0;
     }
 
     [Rpc(SendTo.Server)]
@@ -231,15 +227,13 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
 
-    /*private void ComputerBoardGraphs(bool[,] floor, bool[,] walls, Dictionary<Vector2Int, List<Vector2Int>> floorGraphnum, Dictionary<Vector2Int, List<Vector2Int>> wallGraphnum) {
-        int width = matrix.GetLength(0);
-        int height = matrix.GetLength(1);
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                
-            }
-        }
-    }*/
+    [Rpc(SendTo.Server)]
+    public void SwitchTurnRPC(RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
+        if (playerID != currentPlayer.Value) return;
+        if (currentPlayer.Value == 0) currentPlayer.Value = 1;
+        else currentPlayer.Value = 0;
+    }
 
     
 }
