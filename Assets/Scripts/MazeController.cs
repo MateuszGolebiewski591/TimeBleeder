@@ -137,10 +137,120 @@ public class MazeController : MonoBehaviour
             randomPosition = furthestPosition;
     }
 
-    public bool QueryWallRaise(Vector2Int position, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    // Display all available wall positions to raise, that don't block the angel from reaching the player
+    public List<Vector2Int> QueryWallRaise(Vector2Int angelGridPosition, Vector2Int playerGridPosition)
     {
-        // TODO:
-        return false;
+        List<Vector2Int> wallPositions = GetAvailableWallPositions(angelGridPosition, playerGridPosition);
+
+        return wallPositions;
+    }
+
+    public bool CanRaiseWall(Vector2Int position, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    {
+        return GetAvailableWallPositions(angelGridPosition, playerGridPosition).Contains(position);
+    }
+
+    // Uses Tarjan's articulation points, starting the search from the angel.
+    public List<Vector2Int> GetAvailableWallPositions(Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    {
+        floor = mazeData.GetFloorData();
+        int width = floor.GetLength(0);
+        int height = floor.GetLength(1);
+
+        HashSet<Vector2Int> blockingPositions = FindBlockingPositions(floor, angelGridPosition, playerGridPosition);
+        List<Vector2Int> wallPositions = new List<Vector2Int>();
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (!floor[x, y]) continue;
+
+                Vector2Int position = new Vector2Int(x, y);
+                if (position == angelGridPosition || position == playerGridPosition) continue;
+                if (blockingPositions.Contains(position)) continue;
+
+                wallPositions.Add(position);
+            }
+        }
+
+        return wallPositions;
+    }
+
+    private HashSet<Vector2Int> FindBlockingPositions(bool[,] mazeFloor, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    {
+        HashSet<Vector2Int> blockingPositions = new HashSet<Vector2Int>();
+        if (!IsWalkable(mazeFloor, angelGridPosition) || !IsWalkable(mazeFloor, playerGridPosition))
+            return blockingPositions;
+
+        int width = mazeFloor.GetLength(0);
+        int height = mazeFloor.GetLength(1);
+
+        int[] dx = { 1, -1, 0, 0 }; // Cardinal directions
+        int[] dy = { 0, 0, 1, -1 };
+
+        int[,] disc = new int[width, height]; // Order each tile was discovered in, 0 = not visited
+        int[,] low = new int[width, height]; // Earliest discovered tile reachable from this tile's subtree
+        int[,] nextDirection = new int[width, height]; // Which neighbour to check next
+        Vector2Int[,] parent = new Vector2Int[width, height];
+        int timer = 0;
+
+        // Depth first search with our own stack, as recursion could get very deep in a long maze
+        Stack<Vector2Int> stack = new Stack<Vector2Int>();
+        disc[angelGridPosition.x, angelGridPosition.y] = ++timer;
+        low[angelGridPosition.x, angelGridPosition.y] = timer;
+        parent[angelGridPosition.x, angelGridPosition.y] = angelGridPosition;
+        stack.Push(angelGridPosition);
+
+        while (stack.Count > 0)
+        {
+            Vector2Int current = stack.Peek();
+
+            if (nextDirection[current.x, current.y] < 4)
+            {
+                int i = nextDirection[current.x, current.y]++;
+                Vector2Int next = new Vector2Int(current.x + dx[i], current.y + dy[i]);
+                if (!IsWalkable(mazeFloor, next)) continue;
+
+                if (disc[next.x, next.y] == 0)
+                {
+                    parent[next.x, next.y] = current;
+                    disc[next.x, next.y] = ++timer;
+                    low[next.x, next.y] = timer;
+                    stack.Push(next);
+                }
+                else if (next != parent[current.x, current.y])
+                {
+                    // Back edge, so there is a loop
+                    low[current.x, current.y] = Mathf.Min(low[current.x, current.y], disc[next.x, next.y]);
+                }
+            }
+            else
+            {
+                // Finished this tile, pass its low value up to the parent
+                stack.Pop();
+                Vector2Int currentParent = parent[current.x, current.y];
+                low[currentParent.x, currentParent.y] = Mathf.Min(low[currentParent.x, currentParent.y], low[current.x, current.y]);
+            }
+        }
+
+        // Angel can't reach the player anyway
+        if (disc[playerGridPosition.x, playerGridPosition.y] == 0)
+            return blockingPositions;
+
+        // Walk from the player back to the angel checking each tile on the way
+        Vector2Int child = playerGridPosition;
+        Vector2Int position = parent[child.x, child.y];
+        while (child != angelGridPosition && position != angelGridPosition)
+        {
+            if (low[child.x, child.y] >= disc[position.x, position.y])
+                blockingPositions.Add(position);
+
+            child = position;
+            position = parent[position.x, position.y];
+        }
+
+        return blockingPositions;
     }
 
     public void RaiseWall(Vector2Int position)

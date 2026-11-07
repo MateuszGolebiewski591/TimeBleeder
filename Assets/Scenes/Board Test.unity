@@ -493,8 +493,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeGenerator
   mazeData: {fileID: 11400000, guid: 324d7e31a78d2db4098c8c32d51f3f8e, type: 2}
-  width: 15
-  height: 15
+  width: 12
+  height: 8
   buildFloor: 1
   material: {fileID: 0}
   floorMaterial: {fileID: 0}
