@@ -94,7 +94,9 @@ public class PlayerController : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             Vector3 blockPos = hit.collider.gameObject.transform.position;
-            Vector2Int pos = hit.collider.gameObject.GetComponentInParent<MazeController>().WorldToMazeGrid(blockPos);
+            MazeData mazeData = ganc.Maze.FindMazeData(hit.collider.transform);
+            if (mazeData == null) return;
+            Vector2Int pos = ganc.Maze.WorldToMazeGrid(mazeData, blockPos);
             ganc.SelectTileRPC(currentMode, pos);
         }
     }

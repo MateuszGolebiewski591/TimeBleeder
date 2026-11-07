@@ -6,25 +6,16 @@ using UnityEngine;
 
 public class MazeGenerator : MonoBehaviour
 {
-    [SerializeField] MazeData mazeData;
-
-    [Header("Maze size (number of passage cells)")]
-    [Min(1)] public int width = 15;
-    [Min(1)] public int height = 15;
-
-    [Header("Appearance")]
-    private GameObject wallPrefab => mazeData.wallPrefab;
-
-    private float tileSize => mazeData.tileSize;
-    private float wallHeight => mazeData.wallHeight;
+    private MazeData mazeData;
+    public int width { get; private set; }
+    public int height { get; private set; }
+    public float tileSize { get; private set; }
+    public float wallHeight { get; private set; }
+    public GameObject wallPrefab { get; private set; }
+    public Material material { get; private set; }
+    public Material floorMaterial { get; private set; }
 
     public bool buildFloor = true;
-
-    public Material material;
-    public Material floorMaterial;
-
-    [Header("Camera")]
-    public bool frameMainCamera = true; // Move camera above the board
 
     [Header("Randomness")]
     public bool useSeed = false;
@@ -33,7 +24,9 @@ public class MazeGenerator : MonoBehaviour
     [Header("Behaviour")]
     public bool generateOnStart = false;
 
-    public Vector3 centrePosition;
+    // Where the maze currently being built goes
+    private Transform buildRoot;
+    private Vector3 buildCentre;
 
     private bool[,] walls; // true = wall, false = open passage. Indexed [x, y].
     private bool[,] floor; // true = open floor, the inverse of walls
@@ -51,36 +44,41 @@ public class MazeGenerator : MonoBehaviour
         if (generateOnStart) Generate();
     }
 
-    [ContextMenu("Generate")]
     public void Generate()
     {
-        Clear();
+        Generate(mazeData, transform, transform.position);
+    }
+
+    // Builds the maze as children of root, centred on centre
+    public void Generate(MazeData mazeData, Transform root, Vector3 centre)
+    {
+        if (mazeData == null)
+        {
+            Debug.LogError("MazeGenerator: no MazeData assigned.");
+            return;
+        }
+
+        this.mazeData = mazeData;
+        buildRoot = root;
+        buildCentre = centre;
+        Clear(root);
+        SetVariables();
         System.Random rng = useSeed ? new System.Random(seed) : new System.Random();
         Carve(rng);
         BuildFloorMask();
         Build();
         mazeData.SetMazeData(walls, floor);
-        // if (frameMainCamera && Application.isPlaying) FrameCamera();
     }
 
-    private void FrameCamera()
+    private void SetVariables()
     {
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        float sizeX = (2 * width + 1) * tileSize;
-        float sizeZ = (2 * height + 1) * tileSize;
-        Vector3 centre = transform.TransformPoint(new Vector3((sizeX - tileSize) * 0.5f, 0f, (sizeZ - tileSize) * 0.5f));
-
-        float fovRad = cam.fieldOfView * Mathf.Deg2Rad;
-        // The vertical field of view must cover the maze's depth, and the
-        // horizontal one (vertical * aspect) must cover its width.
-        float needed = Mathf.Max(sizeZ, sizeX / cam.aspect) * 0.5f;
-        float h = needed / Mathf.Tan(fovRad * 0.5f) * 1.1f + wallHeight;
-
-        cam.orthographic = false;
-        cam.transform.position = centre + Vector3.up * h;
-        cam.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        width = mazeData.width;
+        height = mazeData.height;
+        tileSize = mazeData.tileSize;
+        wallHeight = mazeData.wallHeight;
+        wallPrefab = mazeData.wallPrefab;
+        material = mazeData.wallMaterial;
+        floorMaterial = mazeData.floorMaterial;
     }
 
     private Material MakeDefaultMaterial(Color color)
@@ -92,12 +90,16 @@ public class MazeGenerator : MonoBehaviour
         return m;
     }
 
-    [ContextMenu("Clear")]
     public void Clear()
     {
-        for (int i = transform.childCount - 1; i >= 0; i--)
+        Clear(transform);
+    }
+
+    public void Clear(Transform root)
+    {
+        for (int i = root.childCount - 1; i >= 0; i--)
         {
-            GameObject child = transform.GetChild(i).gameObject;
+            GameObject child = root.GetChild(i).gameObject;
             if (Application.isPlaying) Destroy(child);
             else DestroyImmediate(child);
         }
@@ -180,8 +182,9 @@ public class MazeGenerator : MonoBehaviour
             {
                 if (!walls[x, y]) continue;
                 SpawnBlock(
+                    buildRoot,
                     "Wall " + x + "," + y,
-                    new Vector3(
+                    buildCentre + new Vector3(
                         (x - (gridW - 1) * 0.5f) * tileSize,
                         wallHeight * 0.5f,
                         (y - (gridH - 1) * 0.5f) * tileSize),
@@ -195,21 +198,22 @@ public class MazeGenerator : MonoBehaviour
         {
             const float floorThickness = 0.1f;
             SpawnBlock(
+                buildRoot,
                 "Floor",
-                new Vector3(0,0,0),
+                buildCentre,
                 new Vector3(gridW * tileSize, floorThickness, gridH * tileSize), null, floorMat);
         }
     }
 
-    public void SpawnBlock(string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
+    public void SpawnBlock(Transform parent, string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
     {
         GameObject go = prefab != null
-            ? Instantiate(prefab, transform)
+            ? Instantiate(prefab, parent)
             : GameObject.CreatePrimitive(PrimitiveType.Cube);
 
         go.name = blockName;
-        go.transform.SetParent(transform, false);
-        go.transform.position = worldPos + centrePosition;
+        go.transform.SetParent(parent, false);
+        go.transform.position = worldPos;
         go.transform.localRotation = Quaternion.identity;
         go.transform.localScale = scale;
 
