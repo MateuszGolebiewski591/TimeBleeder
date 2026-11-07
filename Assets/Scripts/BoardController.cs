@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class BoardController : MonoBehaviour
 {
@@ -7,9 +8,11 @@ public class BoardController : MonoBehaviour
     public GameObject angel;
 
     [Header("Maze")]
+    [SerializeField] MazeData mazeData;
     public GameObject centreAnchor;
     private MazeGenerator mazeGenerator;
     private float tileSize = 1f;
+    private MazeUpdate mazeUpdate;
 
     [Header("Angel Settings")]
     public float angelMoveSpeed = 1f;
@@ -17,11 +20,14 @@ public class BoardController : MonoBehaviour
     private AngelMovement angelMovement;
     private float angelMoveTimer;
 
-    void Start()
+    void Awake()
     {
+        mazeUpdate = GetComponent<MazeUpdate>();
         mazeGenerator = GetComponent<MazeGenerator>();
         angelMovement = angel.GetComponent<AngelMovement>();
-
+    } 
+    void Start()
+    {
         if(spawnDistanceFromPlayer > Mathf.Max(mazeGenerator.width, mazeGenerator.height))
             spawnDistanceFromPlayer = Mathf.Max(mazeGenerator.width, mazeGenerator.height);
         if(spawnDistanceFromPlayer < 0f)
@@ -34,17 +40,18 @@ public class BoardController : MonoBehaviour
             else
                 mazeGenerator.centrePosition = this.transform.position;
 
-            tileSize = mazeGenerator.tileSize;
+            tileSize = mazeData.tileSize;
         }
 
         if (mazeGenerator != null) mazeGenerator.Generate();
         else Debug.LogError("MazeGenerator component not found on the GameObject.");
 
+        bool[,] mazeFloor = mazeData.GetFloorData();
         if (mazeGenerator != null && player != null)
-            SetPlayerStartPosition(mazeGenerator.GetFloorData(), player.transform.position);
+            SetPlayerStartPosition(mazeFloor, player.transform.position);
 
         if (mazeGenerator != null && angel != null)
-            SetAngelStartPosition(mazeGenerator.GetFloorData(), angel.transform.position, player.transform.position);
+            SetAngelStartPosition(mazeFloor, angel.transform.position, player.transform.position);
     }
 
     void FixedUpdate()
@@ -55,21 +62,41 @@ public class BoardController : MonoBehaviour
         angelMoveTimer += Time.fixedDeltaTime;
         float moveInterval = 1f / angelMoveSpeed;
 
-        if (angelMoveTimer >= moveInterval)
-        {
-            angelMoveTimer = 0f;
-            bool[,] mazeFloor = mazeGenerator.GetFloorData();
+        if (angelMoveTimer < moveInterval)
+            return;
 
-            angelMovement.SetMazeData(mazeFloor);
+        angelMoveTimer = 0f;
+        bool[,] mazeFloor = mazeData.GetFloorData();
+        Vector2Int angelGridPosition = WorldToMazeGrid(angel.transform.position, mazeFloor);
+        Vector2Int playerGridPosition = WorldToMazeGrid(player.transform.position, mazeFloor);
 
-            Vector3 angelPosition = angel.transform.position;
-            Vector3 playerPosition = player.transform.position;
+        // Add at most one wall per angel move, without trapping either character.
+        // -- Random wall testing
+        // if (mazeUpdate != null)
+        // {
+        //     List<Vector2Int> wallCandidates = new List<Vector2Int>();
+        //     for (int x = 0; x < mazeFloor.GetLength(0); x++)
+        //     {
+        //         for (int y = 0; y < mazeFloor.GetLength(1); y++)
+        //         {
+        //             if (mazeFloor[x, y]
+        //                 && new Vector2Int(x, y) != angelGridPosition
+        //                 && new Vector2Int(x, y) != playerGridPosition)
+        //             {
+        //                 wallCandidates.Add(new Vector2Int(x, y));
+        //             }
+        //         }
+        //     }
 
-            Vector2Int angelGridPosition = WorldToMazeGrid(angelPosition, mazeFloor);
-            Vector2Int playerGridPosition = WorldToMazeGrid(playerPosition, mazeFloor);
+        //     if (wallCandidates.Count > 0)
+        //         mazeUpdate.RaiseWall(wallCandidates[Random.Range(0, wallCandidates.Count)]);
+        // }
 
-            angelMovement.MoveAngel(angelGridPosition, playerGridPosition, MazeGridToWorld);
-        }
+        mazeFloor = mazeData.GetFloorData();
+        angelGridPosition = WorldToMazeGrid(angel.transform.position, mazeFloor);
+        playerGridPosition = WorldToMazeGrid(player.transform.position, mazeFloor);
+
+        angelMovement.MoveAngel(angelGridPosition, playerGridPosition, MazeGridToWorld);
     }
 
 
@@ -100,7 +127,7 @@ public class BoardController : MonoBehaviour
     private void SetPlayerStartPosition(bool[,] mazeFloor, Vector3 position)
     {
         FindRandomWalkablePosition(mazeFloor, out Vector2Int randomPosition);
-        Vector3 playerWorldPosition = MazeGridToWorld(randomPosition, mazeGenerator.GetFloorData());
+        Vector3 playerWorldPosition = MazeGridToWorld(randomPosition, mazeFloor);
 
         if (player != null) player.transform.position = new Vector3(playerWorldPosition.x, position.y, playerWorldPosition.z);
         else Debug.LogError("Player GameObject reference is not set.");
@@ -118,7 +145,7 @@ public class BoardController : MonoBehaviour
             return;
         }
 
-        Vector3 angelWorldPosition = MazeGridToWorld(randomPosition, mazeGenerator.GetFloorData());
+        Vector3 angelWorldPosition = MazeGridToWorld(randomPosition, mazeFloor);
         
         if (angel != null) angel.transform.position = new Vector3(angelWorldPosition.x, position.y, angelWorldPosition.z);
         else Debug.LogError("Angel GameObject reference is not set.");
