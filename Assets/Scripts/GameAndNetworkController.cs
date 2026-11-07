@@ -34,7 +34,8 @@ public class GameAndNetworkController : NetworkBehaviour
     public enum GameState {
         ReadyUp,
         CountDown,
-        GameActive
+        GameActive,
+        GameEnd,
     }
 
     public NetworkVariable<GameState> state;

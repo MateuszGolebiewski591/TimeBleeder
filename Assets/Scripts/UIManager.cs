@@ -6,7 +6,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject readyUpPanel;
     [SerializeField] private GameObject countDownPanel;
     [SerializeField] private GameObject mainGamePanel;
-    [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private GameObject gameEndPanel;
 
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
@@ -54,10 +54,10 @@ public class UIManager : MonoBehaviour
             countDownPanel.SetActive(false);
             mainGamePanel.SetActive(true);
         }
-        /*if (newValue == GameAndNetworkController.GameState.GameEnd) {
+        if (newValue == GameAndNetworkController.GameState.GameEnd) {
             mainGamePanel.SetActive(false);
             gameEndPanel.SetActive(true);
-        }*/
+        }
     }
 
     private void UpdateTimer(int prev, int next) {
