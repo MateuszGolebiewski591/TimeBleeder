@@ -527,14 +527,6 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
-  Board1Blocks:
-    UpdateTraits:
-      MinSecondsBetweenUpdates: 0
-      MaxSecondsBetweenUpdates: 0
-  Board2Blocks:
-    UpdateTraits:
-      MinSecondsBetweenUpdates: 0
-      MaxSecondsBetweenUpdates: 0
   player1Ready:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -546,6 +538,29 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   countDownTime:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  board1Blocks:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+  board2Blocks:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+  boardsInitialised:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  width:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  height:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
@@ -934,6 +949,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 581447872}
+  - component: {fileID: 581447873}
   m_Layer: 0
   m_Name: Board2
   m_TagString: Untagged
@@ -959,6 +975,25 @@ Transform:
   - {fileID: 642630778}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &581447873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581447871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f60d810259649a43a108a4ff1e55658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MazeBuilder
+  buildFloor: 1
+  tileSize: 1
+  wallHeight: 0.5
+  wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
+  material: {fileID: 0}
+  floorMaterial: {fileID: 0}
+  isBoard1: 0
 --- !u!1 &608642787
 GameObject:
   m_ObjectHideFlags: 0
@@ -1408,6 +1443,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 836376604}
+  - component: {fileID: 836376605}
   m_Layer: 0
   m_Name: Board1
   m_TagString: Untagged
@@ -1433,6 +1469,25 @@ Transform:
   - {fileID: 2118383858}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &836376605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 836376603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f60d810259649a43a108a4ff1e55658, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MazeBuilder
+  buildFloor: 1
+  tileSize: 1
+  wallHeight: 0.5
+  wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
+  material: {fileID: 0}
+  floorMaterial: {fileID: 0}
+  isBoard1: 1
 --- !u!1 &838091615
 GameObject:
   m_ObjectHideFlags: 0

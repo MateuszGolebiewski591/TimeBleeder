@@ -28,15 +28,7 @@ public class MazeController : MonoBehaviour
             return false;
         }
 
-        if (mazeData.Root != null)
-            Destroy(mazeData.Root.gameObject);
-
-        Vector3 mazeCentre = (centre ?? transform.position) + mazeData.anchorOffset;
-        Transform root = new GameObject("Maze - " + mazeData.name).transform;
-        root.SetParent(transform, false);
-
-        mazeData.SetInstance(root, mazeCentre);
-        mazeGenerator.Generate(mazeData, root, mazeCentre);
+        mazeGenerator.Generate(mazeData);
 
         if (!generatedMazes.Contains(mazeData))
             generatedMazes.Add(mazeData);
@@ -44,7 +36,7 @@ public class MazeController : MonoBehaviour
     }
 
     // Finds which generated maze an object (e.g. a clicked wall) belongs to
-    public MazeData FindMazeData(Transform mazeObject)
+    /*public MazeData FindMazeData(Transform mazeObject)
     {
         foreach (MazeData mazeData in generatedMazes)
         {
@@ -52,7 +44,7 @@ public class MazeController : MonoBehaviour
                 return mazeData;
         }
         return null;
-    }
+    }*/
 
     public int GetMazeSize(MazeData mazeData)
     {

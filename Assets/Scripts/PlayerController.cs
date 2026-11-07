@@ -107,10 +107,10 @@ public class PlayerController : NetworkBehaviour
                 return;
             }
             Vector3 blockPos = hit.collider.gameObject.transform.position;
-            MazeData mazeData = ganc.Maze.FindMazeData(hit.collider.transform);
-            if (mazeData == null) return;
-            Vector2Int pos = ganc.Maze.WorldToMazeGrid(mazeData, blockPos);
-            ganc.SelectTileRPC(currentMode, pos);
+            // MazeData mazeData = ganc.Maze.FindMazeData(hit.collider.transform);
+            // if (mazeData == null) return;
+            // Vector2Int pos = ganc.Maze.WorldToMazeGrid(mazeData, blockPos);
+            // ganc.SelectTileRPC(currentMode, pos);
         }
     }
 

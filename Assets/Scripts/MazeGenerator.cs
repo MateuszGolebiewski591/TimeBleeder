@@ -18,8 +18,6 @@ public class MazeGenerator : MonoBehaviour
     public bool generateOnStart = false;
 
     // Where the maze currently being built goes
-    private Transform buildRoot;
-    private Vector3 buildCentre;
 
     private bool[,] walls; // true = wall, false = open passage. Indexed [x, y].
     private bool[,] floor; // true = open floor, the inverse of walls
@@ -39,11 +37,11 @@ public class MazeGenerator : MonoBehaviour
 
     public void Generate()
     {
-        Generate(mazeData, transform, transform.position);
+        Generate(mazeData);
     }
 
     // Builds the maze as children of root, centred on centre
-    public void Generate(MazeData mazeData, Transform root, Vector3 centre)
+    public void Generate(MazeData mazeData)
     {
         if (mazeData == null)
         {
@@ -52,8 +50,6 @@ public class MazeGenerator : MonoBehaviour
         }
 
         this.mazeData = mazeData;
-        buildRoot = root;
-        buildCentre = centre;
         SetVariables();
         System.Random rng = useSeed ? new System.Random(seed) : new System.Random();
         Carve(rng);

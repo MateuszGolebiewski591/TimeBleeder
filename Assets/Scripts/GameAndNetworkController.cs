@@ -56,7 +56,6 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<int> width;
     public NetworkVariable<int> height;
 
-    //public NetworkVariable<>
 
     // Controls when the angel can next move
     private float board1AngelTimer;
@@ -73,12 +72,14 @@ public class GameAndNetworkController : NetworkBehaviour
         InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre);
         bool[,] board1data = board1MazeData.GetFloorData();
         bool[,] board2data = board2MazeData.GetFloorData();
-        int width = board1MazeData.width;
-        int height = board1MazeData.height; 
+        int lwidth = board1MazeData.width;
+        int lheight = board1MazeData.height;
+        width.Value = lwidth;
+        height.Value = lheight; 
 
         List<BlockData> blocks1 = new List<BlockData>();
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        for (int i = 0; i < lwidth; i++) {
+            for (int j = 0; j < lheight; j++) {
                 blocks1.Add(new BlockData(i, j, board1data[i, j]));
             }
         }
@@ -87,8 +88,8 @@ public class GameAndNetworkController : NetworkBehaviour
         }
 
         List<BlockData> blocks2 = new List<BlockData>();
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        for (int i = 0; i < lwidth; i++) {
+            for (int j = 0; j < lheight; j++) {
                 blocks2.Add(new BlockData(i, j, board2data[i, j]));
             }
         }

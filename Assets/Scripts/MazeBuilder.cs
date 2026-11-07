@@ -11,6 +11,7 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private GameObject wallPrefab; 
     [SerializeField] private Material material; 
     [SerializeField] private Material floorMaterial;
+    [SerializeField] private bool isBoard1 = false;
     private bool widthReceived = false;
     private bool heightReceived = false;
     private int width;
@@ -80,8 +81,8 @@ public class MazeBuilder : MonoBehaviour
         // We have received all the required data.
         initialised = true;
 
-        InitialiseBoard1();
-        InitialiseBoard2();
+        if (isBoard1) InitialiseBoard1();
+        else InitialiseBoard2();
     }
 
     private void InitialiseBoard1() {
@@ -92,7 +93,7 @@ public class MazeBuilder : MonoBehaviour
             board1Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
         }
 
-        //Build(board1Matrix, );
+        Build(board1Matrix, gameObject.transform);
     }
 
     private void InitialiseBoard2() {
@@ -103,7 +104,7 @@ public class MazeBuilder : MonoBehaviour
             board2Matrix[block.posWidth, block.posHeight] = block.canBeRaised;
         }
 
-        //Build(board2Matrix, );
+        Build(board2Matrix, gameObject.transform);
     }
 
 
@@ -131,8 +132,9 @@ public class MazeBuilder : MonoBehaviour
         }
     }
 
-    private void Build(bool[,] walls, Transform buildRoot, Vector3 buildCentre)
+    private void Build(bool[,] walls, Transform buildRoot)
     {
+        Vector3 buildCentre = buildRoot.gameObject.transform.position;
         int gridW = walls.GetLength(0);
         int gridH = walls.GetLength(1);
 
