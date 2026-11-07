@@ -6,6 +6,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject readyUpPanel;
     [SerializeField] private GameObject countDownPanel;
     [SerializeField] private GameObject mainGamePanel;
+    [SerializeField] private GameObject gameOverPanel;
 
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
@@ -13,6 +14,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI mainTimerText;
     [SerializeField] private TextMeshProUGUI currentPlayerTime;
     [SerializeField] private TextMeshProUGUI opponentTime;
+    [SerializeField] private TextMeshProUGUI winnerText;
 
     private GameAndNetworkController ganc; 
     private ulong player;
@@ -52,6 +54,10 @@ public class UIManager : MonoBehaviour
             countDownPanel.SetActive(false);
             mainGamePanel.SetActive(true);
         }
+        /*if (newValue == GameAndNetworkController.GameState.GameEnd) {
+            mainGamePanel.SetActive(false);
+            gameEndPanel.SetActive(true);
+        }*/
     }
 
     private void UpdateTimer(int prev, int next) {
@@ -61,5 +67,22 @@ public class UIManager : MonoBehaviour
     private void UpdateGlobalTime(float prev, float nextf) {
         int next = (int)nextf;
         mainTimerText.text = $"{(int)90/60}:{next%60:D2}";
+    }
+
+    private void UpdatePlayer1Time(float prev, float nextf) {
+        int next = (int)nextf;
+        if (player == 0) currentPlayerTime.text = $"{(int)90/60}:{next%60:D2}";
+        else opponentTime.text = $"{(int)90/60}:{next%60:D2}";
+    }
+
+    private void UpdatePlayer2Time(float prev, float nextf) {
+        int next = (int)nextf;
+        if (player == 1) currentPlayerTime.text = $"{(int)90/60}:{next%60:D2}";
+        else opponentTime.text = $"{(int)90/60}:{next%60:D2}";
+    }
+
+    private void UpdateGameOverScreen(ulong prev, ulong winner) {
+        if (winner == player) winnerText.text = "You Win";
+        else winnerText.text = "You Lose";
     }
 }
