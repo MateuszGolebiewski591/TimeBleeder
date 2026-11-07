@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Netcode;
 
 public class BoardController : MonoBehaviour
 {
@@ -13,6 +14,10 @@ public class BoardController : MonoBehaviour
     public float spawnDistanceFromPlayer = 5f;
     private AngelMovement angelMovement;
     private float angelMoveTimer;
+
+    [Header("Networking")]
+    private GameAndNetworkController ganc;
+    private PlayerController.Mode currentMode = PlayerController.Mode.raise;
 
     void Awake()
     {
@@ -40,6 +45,10 @@ public class BoardController : MonoBehaviour
 
         if (angel != null)
             SetAngelStartPosition(angel.transform.position, player.transform.position);
+
+        ganc = FindFirstObjectByType<GameAndNetworkController>();
+        ganc.Board1Blocks.OnListChanged += UpdateBoard1;
+        ganc.Board2Blocks.OnListChanged += UpdateBoard2;
     }
 
     void FixedUpdate()
@@ -92,5 +101,28 @@ public class BoardController : MonoBehaviour
 
         if (angel != null) angel.transform.position = new Vector3(angelWorldPosition.x, position.y, angelWorldPosition.z);
         else Debug.LogError("Angel GameObject reference is not set.");
+    }
+
+    public void SwitchDisplay(PlayerController.Mode mode) {
+        currentMode = mode;
+        switch (mode) {
+            case PlayerController.Mode.raise : {
+                break;
+            }
+            case PlayerController.Mode.lower : {
+                break;
+            }
+            case PlayerController.Mode.move : {
+                break;
+            }
+        }
+    }
+
+    private void UpdateBoard1(NetworkListEvent<BlockData> changeEvent) {
+
+    }
+
+    private void UpdateBoard2(NetworkListEvent<BlockData> changeEvent) {
+        
     }
 }

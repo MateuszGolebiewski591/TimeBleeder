@@ -9,9 +9,17 @@ public class GameAndNetworkController : NetworkBehaviour
     [SerializeField] private Transform playerPrefab;
     [SerializeField] private string gameSceneName;
     [SerializeField] private float timeLimit = 90f;
+    [SerializeField] public BoardController board1;
+    [SerializeField] public BoardController board2;
     private PlayerController player;
 
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
+    private Dictionary<Vector2Int, List<Vector2Int>> floorGraph1 = new Dictionary<Vector2Int, List<Vector2Int>>();
+    private Dictionary<Vector2Int, List<Vector2Int>> wallGraph1 = new Dictionary<Vector2Int, List<Vector2Int>>();
+
+    private Dictionary<Vector2Int, List<Vector2Int>> floorGraph2 = new Dictionary<Vector2Int, List<Vector2Int>>();
+    private Dictionary<Vector2Int, List<Vector2Int>> wallGraph2 = new Dictionary<Vector2Int, List<Vector2Int>>();
+
 
     public enum GameState {
         ReadyUp,
@@ -23,6 +31,7 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> GlobalTime;
     public NetworkVariable<float> Player1TimeGained;
     public NetworkVariable<float> Player2TimeGained;
+
     public NetworkList<BlockData> Board1Blocks = new NetworkList<BlockData>();
     public NetworkList<BlockData> Board2Blocks = new NetworkList<BlockData>();
 
@@ -98,4 +107,34 @@ public class GameAndNetworkController : NetworkBehaviour
     private void Player1Turn() {
 
     }
+
+    private void Player2Turn() {
+
+    }
+
+    [Rpc(SendTo.Server)]
+    public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, RpcParams rpcParams = default) {
+        switch (mode) {
+            case PlayerController.Mode.raise : {
+                break;
+            }
+            case PlayerController.Mode.lower : {
+                break;
+            }
+            case PlayerController.Mode.move : {
+                break;
+            }
+        }
+    }
+
+
+    /*private void ComputerBoardGraphs(bool[,] floor, bool[,] walls, Dictionary<Vector2Int, List<Vector2Int>> floorGraphnum, Dictionary<Vector2Int, List<Vector2Int>> wallGraphnum) {
+        int width = matrix.GetLength(0);
+        int height = matrix.GetLength(1);
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                
+            }
+        }
+    }*/
 }

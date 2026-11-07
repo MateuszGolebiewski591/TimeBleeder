@@ -8,17 +8,20 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float camMovementTime = 0.4f;
     private GameAndNetworkController ganc;   
     private GameAndNetworkController.GameState state = GameAndNetworkController.GameState.ReadyUp;
+    private BoardController board1;
+    private BoardController board2;
     private UIManager UI;
     public PlayerInfo player1Info;
     public PlayerInfo player2Info;
     public PlayerInfo localPlayerInfo;
     private Vector3 initialPosition = Vector3.zero;
     private Vector3 otherPosition = Vector3.zero;
+    private Mode currentMode;
 
     private Coroutine movingForward = null;
     private Coroutine movingBackward = null;
 
-    public enum mode{
+    public enum Mode{
         raise, 
         lower, 
         move,
@@ -43,6 +46,8 @@ public class PlayerController : NetworkBehaviour
             GetComponent<PlayerInput>().enabled = true;
             gameObject.GetComponent<Camera>().enabled = true; 
             gameObject.GetComponent<AudioListener>().enabled = true;
+            board1 = ganc.board1;
+            board2 = ganc.board2;
         }
         yield return null;
     }
@@ -50,9 +55,9 @@ public class PlayerController : NetworkBehaviour
     void Update() {
         if (!IsOwner) return;
         if (Input.GetKeyDown(KeyCode.Mouse0)) OnLeftClick();
-        if (Input.GetKeyDown(KeyCode.Alpha1)) { }
-        if (Input.GetKeyDown(KeyCode.Alpha2)) { }
-        if (Input.GetKeyDown(KeyCode.Alpha3)) { }
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchMode(Mode.raise);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchMode(Mode.lower);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchMode(Mode.move);
         if (Input.GetKeyDown(KeyCode.E)) { }
         if (Input.GetKeyDown(KeyCode.W)) {
             if (Vector3.Distance(transform.position, initialPosition) < 0.1f && movingForward == null && movingBackward == null) movingForward = StartCoroutine(MoveForwardOverTime());
@@ -78,11 +83,19 @@ public class PlayerController : NetworkBehaviour
         else if (state == GameAndNetworkController.GameState.GameActive) RayCast();
     }
 
+    private void SwitchMode(Mode mode) {
+        currentMode = mode;
+        board1.SwitchDisplay(mode);
+        board2.SwitchDisplay(mode);
+    }
+
     private void RayCast() {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            Debug.Log(hit.collider.gameObject);
+            Vector3 blockPos = hit.collider.gameObject.transform.position;
+            Vector2Int pos = hit.collider.gameObject.GetComponentInParent<MazeController>().WorldToMazeGrid(blockPos);
+            ganc.SelectTileRPC(currentMode, pos);
         }
     }
 

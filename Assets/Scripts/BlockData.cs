@@ -4,12 +4,12 @@ using System;
 
 public struct BlockData : INetworkSerializable, IEquatable<BlockData>
 {
-    public Vector3 pos;
+    public Vector2 pos;
     public bool CanBeRaised;
     public bool CanBeLowered;
     public bool CanBeOccupied;
 
-    public BlockData(Vector3 position, bool raised, bool lowered, bool occupied)
+    public BlockData(Vector2 position, bool raised, bool lowered, bool occupied)
     {
         pos = position;
         CanBeRaised = raised;
