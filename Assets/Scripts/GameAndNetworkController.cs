@@ -114,8 +114,14 @@ public class GameAndNetworkController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        TickAngel(board1, board1MazeData, board1AngelGrid, ref board1AngelTimer);
-        TickAngel(board2, board2MazeData, board2AngelGrid, ref board2AngelTimer);
+        if (state != GameState.GameActive) return;
+        if(currentPlayer.value == 0)
+        {
+            TickAngel(board1, board1MazeData, board1AngelGrid, ref board1AngelTimer);
+        }else
+        {
+            TickAngel(board2, board2MazeData, board2AngelGrid, ref board2AngelTimer);
+        }
     }
 
     // Every peer (host included): animate the angels towards the server's chosen tiles
