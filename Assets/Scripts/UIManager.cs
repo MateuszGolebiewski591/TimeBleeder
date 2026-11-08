@@ -18,6 +18,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI opponentTime;
     [SerializeField] private TextMeshProUGUI winnerText;
     [SerializeField] private TextMeshProUGUI tokenText;
+    [SerializeField] private TextMeshProUGUI timeStopText; 
 
     private GameAndNetworkController ganc; 
     private ulong player;
@@ -36,6 +37,8 @@ public class UIManager : MonoBehaviour
         ganc.winnerDeclared.OnValueChanged += UpdateGameOverScreen;
         ganc.player1Tokens.OnValueChanged += TokenCount1;
         ganc.player2Tokens.OnValueChanged += TokenCount2;
+        ganc.player1TimeStops.OnValueChanged += TimeStopCount1;
+        ganc.player2TimeStops.OnValueChanged += TimeStopCount2;
     }
 
     private void UpdateReadyUpPanel1(bool previousStatus, bool newStatus) {
@@ -112,5 +115,15 @@ public class UIManager : MonoBehaviour
     private void TokenCount2(int prev, int nexti) {
         if (player == 0) return;
         tokenText.text = $"Tokens: {nexti}";
+    }
+
+    private void TimeStopCount1(int prev, int nexti) {
+        if (player == 1) return; 
+        timeStopText.text = $"E - Stop Time ({nexti})";
+    }
+
+    private void TimeStopCount2(int prev, int nexti) {
+        if (player == 0) return; 
+        timeStopText.text = $"E - Stop Time ({nexti})";
     }
 }

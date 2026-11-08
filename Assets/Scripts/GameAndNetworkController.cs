@@ -18,6 +18,7 @@ public class GameAndNetworkController : NetworkBehaviour
     [Tooltip("The MazeBuilder object for each board (walls are built centred on it). Empty = the board's own transform.")]
     [SerializeField] private Transform board1MazeCentre;
     [SerializeField] private Transform board2MazeCentre;
+    [SerializeField] private int numWallsToDrop = 1;
 
     public MazeController mazeController;
     public MazeController Maze => mazeController;
@@ -34,6 +35,8 @@ public class GameAndNetworkController : NetworkBehaviour
 
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
 
+    private Coroutine tS = null;
+
 
 
     public enum GameState {
@@ -49,8 +52,10 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
     public NetworkVariable<ulong> winnerDeclared;
-    public NetworkVariable<int> player1Tokens = new NetworkVariable<int>(3);
-    public NetworkVariable<int> player2Tokens = new NetworkVariable<int>(0);
+    public NetworkVariable<int> player1Tokens;
+    public NetworkVariable<int> player2Tokens;
+    public NetworkVariable<int> player1TimeStops;
+    public NetworkVariable<int> player2TimeStops;
 
 
     public NetworkVariable<bool> player1Ready;
@@ -386,6 +391,8 @@ public class GameAndNetworkController : NetworkBehaviour
             winnerDeclared.Value = 2;
             player1Tokens.Value = 0;
             player2Tokens.Value = 0;
+            player1TimeStops.Value = 0;
+            player2TimeStops.Value = 0;
             StartMazeGeneration();
         }
     }
@@ -436,6 +443,8 @@ public class GameAndNetworkController : NetworkBehaviour
         }
         state.Value = GameState.GameActive;
         player1Tokens.Value = 3;
+        player1TimeStops.Value = 3;
+        player2TimeStops.Value = 3;
         StartCoroutine(GlobalTimerCountdown());
     }
 
@@ -495,37 +504,45 @@ public class GameAndNetworkController : NetworkBehaviour
         SwitchTurn();
     }
 
+    [Rpc(SendTo.Server)]
+    public void TimeStopRPC(RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
+        if (tS != null) return;
+        if (playerID != currentPlayer.Value) return;
+        if (playerID == 0) {
+            if (player1TimeStops.Value <= 0) return;
+            player1TimeStops.Value -= 1;
+            tS = StartCoroutine(TimeStop());
+        }
+        else {
+            if (player2TimeStops.Value <= 0) return;
+            player2TimeStops.Value -= 1;
+            tS = StartCoroutine(TimeStop());
+        }
+    }
+
+    private IEnumerator TimeStop() {
+        angelMoveSpeed = 0f;
+        yield return new WaitForSeconds(5f);
+        angelMoveSpeed = 1f;
+        tS = null;
+    }
+
     private void SwitchTurn() {
         if (currentPlayer.Value == 0) {
             currentPlayer.Value = 1;
             player2Tokens.Value = 3;
+            DropRandomWalls(board1, numWallsToDrop);
         }
         else {
             currentPlayer.Value = 0;
             player1Tokens.Value = 3;
+            DropRandomWalls(board2, numWallsToDrop);
         }
-        // TODO: Drop random walls after round!!!
+        if (tS != null) StopCoroutine(tS);
+        tS = null;
+        angelMoveSpeed = 1f;
     }
-
-    [Rpc(SendTo.Server)]
-    public void AngelCaughtPlayerRPC(RpcParams rpcParams = default) {
-        ulong playerID = rpcParams.Receive.SenderClientId;
-        if (playerID == 0) {
-            float result = player1TimeGained.Value - 5f;
-            if (result < 0) result = 0;
-            player1TimeGained.Value = result;
-            currentPlayer.Value = 1;
-        }
-        else {
-            float result = player1TimeGained.Value - 5f;
-            if (result < 0) result = 0;
-            player1TimeGained.Value = result;
-            currentPlayer.Value =  0;
-        }
-        // Take 5 seconds penalty, force swap of players. 
-        // Regenarate map 
-    }
-
 
     // Depends on where the angel and player are, so call it after any wall change AND
     // whenever the angel (or player) moves to a new tile.

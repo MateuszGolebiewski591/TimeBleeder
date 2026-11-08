@@ -22,6 +22,7 @@ public class PlayerController : NetworkBehaviour
     private Coroutine movingBackward = null;
     private bool isMyTurn = false;
     private int tokenCount = 0;
+    private int timeStopCount = 0;
 
     public enum Mode{
         raise, 
@@ -42,10 +43,12 @@ public class PlayerController : NetworkBehaviour
             if (OwnerClientId == 0) {
                 localPlayerInfo = player1Info;
                 ganc.player1Tokens.OnValueChanged += TokenCounter;
+                ganc.player1TimeStops.OnValueChanged += TimeTokenCounter;
             }
             else if (OwnerClientId == 1) {
                 localPlayerInfo = player2Info;
                 ganc.player2Tokens.OnValueChanged += TokenCounter;
+                ganc.player2TimeStops.OnValueChanged += TimeTokenCounter;
             }
             InitCameraPos();
             ganc.state.OnValueChanged += GameStateChange;
@@ -68,6 +71,10 @@ public class PlayerController : NetworkBehaviour
         tokenCount = nexti;
     } 
 
+    private void TimeTokenCounter(int pred, int nexti) {
+        timeStopCount = nexti;
+    }
+
     private void UpdateTurn(ulong prev, ulong nextu) {
         if (nextu == OwnerClientId) isMyTurn = true;
         else isMyTurn = false;
@@ -79,7 +86,7 @@ public class PlayerController : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchMode(Mode.raise);
         if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchMode(Mode.lower);
         if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchMode(Mode.move);
-        if (Input.GetKeyDown(KeyCode.E)) { }
+        if (Input.GetKeyDown(KeyCode.E)) ZaWorldo();
         if (Input.GetKeyDown(KeyCode.W)) {
             if (Vector3.Distance(transform.position, initialPosition) < 0.1f && movingForward == null && movingBackward == null) movingForward = StartCoroutine(MoveForwardOverTime());
         }
@@ -153,5 +160,11 @@ public class PlayerController : NetworkBehaviour
         }
         transform.position = initialPosition;
         movingBackward = null;
+    }
+
+    private void ZaWorldo() {
+        if (timeStopCount <= 0) return;
+        if (!isMyTurn) return;
+        ganc.TimeStopRPC();
     }
 }
