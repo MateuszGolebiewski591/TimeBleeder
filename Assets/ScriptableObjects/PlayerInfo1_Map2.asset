@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30162a438c2a7ee45b496cfbe6194b04, type: 3}
   m_Name: PlayerInfo1_Map2
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInfo
-  mainPosition: {x: 38.752, y: -21.46, z: 9.8}
-  otherPosition: {x: 38.752, y: -21.46, z: -21}
-  rotation: {x: -0.000000016727626, y: -0.9238795, z: 0.38268346, w: -0.000000040384055}
+  mainPosition: {x: 38.752, y: -21.46, z: 4.2}
+  otherPosition: {x: 38.752, y: -21.46, z: -26}
+  rotation: {x: -0.000000019844554, y: 0.8910065, z: -0.4539905, w: -0.00000003894713}
