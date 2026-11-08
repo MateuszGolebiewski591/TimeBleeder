@@ -266,7 +266,20 @@ public class MazeController : MonoBehaviour
         return position.x >= 0 && position.x < grid.GetLength(0) && position.y >= 0 && position.y < grid.GetLength(1);
     }
 
-    // Lowering is allowed on any inner wall. The outer border always stays up.
+    // Every wall that is allowed to be lowered
+    public List<Vector2Int> GetLowerableWalls(MazeData mazeData)
+    {
+        List<Vector2Int> result = new List<Vector2Int>();
+        if (mazeData == null || !mazeData.IsGenerated) return result;
+
+        bool[,] walls = mazeData.GetWallData();
+        for (int x = 0; x < walls.GetLength(0); x++)
+            for (int y = 0; y < walls.GetLength(1); y++)
+                if (CanLowerWall(mazeData, new Vector2Int(x, y)))
+                    result.Add(new Vector2Int(x, y));
+        return result;
+    }
+
     public bool CanLowerWall(MazeData mazeData, Vector2Int position)
     {
         if (mazeData == null || !mazeData.IsGenerated) return false;
