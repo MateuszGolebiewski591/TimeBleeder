@@ -206,9 +206,10 @@ public class GameAndNetworkController : NetworkBehaviour
         angelGridVar.Value = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
     }
 
-    // Only raises the wall if the angel can still reach the player
+    // These update the server's maze data and the synced block list for the MazeBuilders to then update their visuals.
     public bool TryRaiseWall(BoardController board, Vector2Int position)
     {
+        if (!IsServer) return false;
         MazeData mazeData = GetMazeData(board);
         if (mazeData == null || !mazeData.IsGenerated || mazeController == null) return false;
 
@@ -219,8 +220,41 @@ public class GameAndNetworkController : NetworkBehaviour
         if (!mazeController.CanRaiseWall(mazeData, position, angelGrid, playerGrid))
             return false;
 
-        mazeController.RaiseWall(mazeData, position);
+        if (!mazeController.RaiseWall(mazeData, position))
+            return false;
+
+        PublishBlock(board, position, true);
         return true;
+    }
+
+    // Lowers any inner wall (the outer border can't be lowered)
+    public bool TryLowerWall(BoardController board, Vector2Int position)
+    {
+        if (!IsServer) return false;
+        MazeData mazeData = GetMazeData(board);
+        if (mazeData == null || !mazeData.IsGenerated || mazeController == null) return false;
+
+        if (!mazeController.CanLowerWall(mazeData, position))
+            return false;
+
+        if (!mazeController.LowerWall(mazeData, position))
+            return false;
+
+        PublishBlock(board, position, false);
+        return true;
+    }
+
+    // Writes one tile to the board's synced list, which is what clients react to
+    private void PublishBlock(BoardController board, Vector2Int position, bool isWall)
+    {
+        NetworkList<BlockData> blocks = board == board1 ? board1Blocks : board2Blocks;
+        int index = position.x * height.Value + position.y; // Matches the fill order in StartMazeGeneration
+        if (index < 0 || index >= blocks.Count) return;
+
+        BlockData block = blocks[index];
+        block.isFloor = !isWall;
+        if (isWall) block.canBeRaised = false;
+        blocks[index] = block;
     }
 
     public override void OnNetworkSpawn()
