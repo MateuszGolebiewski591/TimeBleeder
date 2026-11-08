@@ -18,6 +18,7 @@ public class GameAndNetworkController : NetworkBehaviour
     [Tooltip("The MazeBuilder object for each board (walls are built centred on it). Empty = the board's own transform.")]
     [SerializeField] private Transform board1MazeCentre;
     [SerializeField] private Transform board2MazeCentre;
+    [SerializeField] private int numWallsToDrop = 1;
 
     public MazeController mazeController;
     public MazeController Maze => mazeController;
@@ -531,15 +532,16 @@ public class GameAndNetworkController : NetworkBehaviour
         if (currentPlayer.Value == 0) {
             currentPlayer.Value = 1;
             player2Tokens.Value = 3;
+            DropRandomWalls(board1, numWallsToDrop);
         }
         else {
             currentPlayer.Value = 0;
             player1Tokens.Value = 3;
+            DropRandomWalls(board2, numWallsToDrop);
         }
         if (tS != null) StopCoroutine(tS);
         tS = null;
         angelMoveSpeed = 1f;
-        // TODO: Drop random walls after round!!!
     }
 
     // Depends on where the angel and player are, so call it after any wall change AND
