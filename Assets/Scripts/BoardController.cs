@@ -1,12 +1,12 @@
 using UnityEngine;
-using Unity.Netcode;
-
 public class BoardController : MonoBehaviour
 {
     [Header("Characters")]
     public GameObject player;
     public GameObject angel;
     public AngelMovement AngelMovement { get; private set; }
+
+    [SerializeField] private MazeBuilder mazeBuilder;
 
     [Header("Networking")]
     private GameAndNetworkController ganc;
@@ -21,30 +21,37 @@ public class BoardController : MonoBehaviour
     void Start()
     {
         ganc = FindFirstObjectByType<GameAndNetworkController>();
-        ganc.board1Blocks.OnListChanged += UpdateBoard1;
-        ganc.board2Blocks.OnListChanged += UpdateBoard2;
     }
 
+    // Shows which tiles can be used in this mode
     public void SwitchDisplay(PlayerController.Mode mode) {
         currentMode = mode;
-        switch (mode) {
-            case PlayerController.Mode.raise : {
-                break;
-            }
-            case PlayerController.Mode.lower : {
-                break;
-            }
-            case PlayerController.Mode.move : {
+
+        MazeBuilder builder = GetMazeBuilder();
+        if (builder != null) builder.SetHighlightMode(mode);
+    }
+
+    public void HideDisplay() {
+        MazeBuilder builder = GetMazeBuilder();
+        if (builder != null) builder.ClearHighlights();
+    }
+
+    private MazeBuilder GetMazeBuilder()
+    {
+        if (mazeBuilder != null) return mazeBuilder;
+
+        if (ganc == null) ganc = FindFirstObjectByType<GameAndNetworkController>();
+        if (ganc == null) return null;
+
+        bool isBoard1 = ganc.board1 == this;
+        foreach (MazeBuilder builder in FindObjectsByType<MazeBuilder>(FindObjectsSortMode.None))
+        {
+            if (builder.isBoard1 == isBoard1)
+            {
+                mazeBuilder = builder;
                 break;
             }
         }
-    }
-
-    private void UpdateBoard1(NetworkListEvent<BlockData> changeEvent) {
-
-    }
-
-    private void UpdateBoard2(NetworkListEvent<BlockData> changeEvent) {
-
+        return mazeBuilder;
     }
 }

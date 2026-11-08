@@ -65,6 +65,10 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<Vector2Int> board1AngelGrid = new NetworkVariable<Vector2Int>();
     public NetworkVariable<Vector2Int> board2AngelGrid = new NetworkVariable<Vector2Int>();
 
+    // Server-authoritative player tiles, so every peer places the players in the same spot
+    public NetworkVariable<Vector2Int> board1PlayerGrid = new NetworkVariable<Vector2Int>();
+    public NetworkVariable<Vector2Int> board2PlayerGrid = new NetworkVariable<Vector2Int>();
+
 
     // Controls when the angel can next move
     private float board1AngelTimer;
@@ -74,6 +78,10 @@ public class GameAndNetworkController : NetworkBehaviour
     private Vector2Int? board1AngelShown;
     private Vector2Int? board2AngelShown;
 
+    // Last player tile each peer applied to its visuals
+    private Vector2Int? board1PlayerShown;
+    private Vector2Int? board2PlayerShown;
+
     private void StartMazeGeneration()
     {
         if (!IsServer) return;
@@ -81,8 +89,8 @@ public class GameAndNetworkController : NetworkBehaviour
         if (mazeController == null)
             mazeController = GetComponent<MazeController>();
 
-        InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre, board1AngelGrid);
-        InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre, board2AngelGrid);
+        InitialiseBoardMaze(board1, board1MazeData, board1MazeCentre, board1AngelGrid, board1PlayerGrid);
+        InitialiseBoardMaze(board2, board2MazeData, board2MazeCentre, board2AngelGrid, board2PlayerGrid);
 
         bool[,] board1data = board1MazeData.GetFloorData();
         bool[,] board2data = board2MazeData.GetFloorData();
@@ -137,6 +145,21 @@ public class GameAndNetworkController : NetworkBehaviour
 
         ShowAngel(board1, board1MazeData, board1MazeCentre, board1AngelGrid.Value, ref board1AngelShown);
         ShowAngel(board2, board2MazeData, board2MazeCentre, board2AngelGrid.Value, ref board2AngelShown);
+
+        ShowPlayer(board1, board1MazeData, board1MazeCentre, board1PlayerGrid.Value, ref board1PlayerShown);
+        ShowPlayer(board2, board2MazeData, board2MazeCentre, board2PlayerGrid.Value, ref board2PlayerShown);
+    }
+
+    private void ShowPlayer(BoardController board, MazeData mazeData, Transform mazeCentre, Vector2Int playerGrid, ref Vector2Int? shown)
+    {
+        if (board == null || board.player == null || mazeData == null) return;
+        if (shown == playerGrid) return;
+
+        Transform root = GetMazeRoot(board, mazeCentre);
+        if (root == null || width.Value <= 0 || height.Value <= 0) return;
+
+        board.player.transform.position = MazeController.GridToWorld(root.position, width.Value, height.Value, mazeData.tileSize, playerGrid);
+        shown = playerGrid;
     }
 
     private void ShowAngel(BoardController board, MazeData mazeData, Transform mazeCentre, Vector2Int angelGrid, ref Vector2Int? shown)
@@ -169,7 +192,7 @@ public class GameAndNetworkController : NetworkBehaviour
         return board != null ? board.transform : null;
     }
 
-    private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre, NetworkVariable<Vector2Int> angelGridVar)
+    private void InitialiseBoardMaze(BoardController board, MazeData mazeData, Transform mazeCentre, NetworkVariable<Vector2Int> angelGridVar, NetworkVariable<Vector2Int> playerGridVar)
     {
         if (board == null) return;
         if (mazeController == null) return;
@@ -183,7 +206,8 @@ public class GameAndNetworkController : NetworkBehaviour
         if (board.player != null)
         {
             Vector2Int playerGrid = mazeController.FindRandomWalkablePosition(mazeData);
-            PlaceOnGrid(board.player.transform, mazeData, playerGrid);
+            PlaceOnGrid(board.player.transform, mazeData, playerGrid); // Server copy, used straight away
+            playerGridVar.Value = playerGrid; // Every peer places the player from this (see ShowPlayer)
 
             if (board.angel != null)
             {

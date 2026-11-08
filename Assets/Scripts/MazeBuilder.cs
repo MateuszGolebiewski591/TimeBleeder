@@ -29,9 +29,18 @@ public class MazeBuilder : MonoBehaviour
     private GameAndNetworkController ganc;
 
     private bool[,] wallMatrix;
+    private bool[,] raisableMatrix; // canBeRaised from the server (Tarjan's output)
     private readonly Dictionary<Vector2Int, GameObject> wallObjects = new Dictionary<Vector2Int, GameObject>();
     private readonly Dictionary<Vector2Int, Coroutine> wallAnimations = new Dictionary<Vector2Int, Coroutine>();
     private Material wallMat;
+
+    private bool highlightsOn = false;
+    private PlayerController.Mode highlightMode;
+    private bool highlightsDirty = false;
+    private readonly Dictionary<Vector2Int, GameObject> floorHighlights = new Dictionary<Vector2Int, GameObject>();
+    private Material fallbackHighlightMat;
+
+    private NetworkVariable<Vector2Int> PlayerGridVar => isBoard1 ? ganc.board1PlayerGrid : ganc.board2PlayerGrid;
 
 
     private IEnumerator Start()
@@ -43,6 +52,7 @@ public class MazeBuilder : MonoBehaviour
 
         ganc.width.OnValueChanged += OnWidthChanged;
         ganc.height.OnValueChanged += OnHeightChanged;
+        PlayerGridVar.OnValueChanged += OnPlayerGridChanged;
 
         // On clients the initial values arrive when ganc spawns, without raising
         // OnValueChanged/OnListChanged, so wait for the spawn before reading them.
@@ -65,6 +75,12 @@ public class MazeBuilder : MonoBehaviour
         ganc.board2Blocks.OnListChanged -= OnBoard2BlocksChanged;
         ganc.width.OnValueChanged -= OnWidthChanged;
         ganc.height.OnValueChanged -= OnHeightChanged;
+        PlayerGridVar.OnValueChanged -= OnPlayerGridChanged;
+    }
+
+    private void OnPlayerGridChanged(Vector2Int previous, Vector2Int next)
+    {
+        highlightsDirty = true; // Move targets depend on where the player is
     }
 
     private void OnBoard1BlocksChanged(NetworkListEvent<BlockData> changeEvent)
@@ -153,15 +169,18 @@ public class MazeBuilder : MonoBehaviour
     private void InitialiseFromBlocks(NetworkList<BlockData> blocks)
     {
         wallMatrix = new bool[width, height];
+        raisableMatrix = new bool[width, height];
         for (int i = 0; i < blocks.Count; i++)
         {
             BlockData block = blocks[i];
             if (!InBounds(block.posWidth, block.posHeight)) continue;
             // isFloor = open floor, so the wall matrix is its inverse
             wallMatrix[block.posWidth, block.posHeight] = !block.isFloor;
+            raisableMatrix[block.posWidth, block.posHeight] = block.canBeRaised;
         }
 
         Build(wallMatrix, transform);
+        highlightsDirty = true;
     }
 
     private void ResetBoard()
@@ -170,17 +189,22 @@ public class MazeBuilder : MonoBehaviour
             if (c != null) StopCoroutine(c);
         wallAnimations.Clear();
         wallObjects.Clear();
+        floorHighlights.Clear();
         Clear();
         wallMatrix = null;
+        raisableMatrix = null;
         initialised = false;
     }
 
-    // Called whenever the server changes one block. Only acts if the wall state changed.
+    // Called whenever the server changes one block. Only moves walls if the wall state changed.
     private void AdjustBlock(BlockData block)
     {
         if (wallMatrix == null || !InBounds(block.posWidth, block.posHeight)) return;
 
         Vector2Int pos = new Vector2Int(block.posWidth, block.posHeight);
+        raisableMatrix[pos.x, pos.y] = block.canBeRaised;
+        highlightsDirty = true;
+
         bool shouldBeWall = !block.isFloor;
         if (wallMatrix[pos.x, pos.y] == shouldBeWall) return; // e.g. only canBeRaised changed
 
@@ -279,6 +303,140 @@ public class MazeBuilder : MonoBehaviour
     public bool IsWall(Vector2Int gridPosition)
     {
         return wallMatrix != null && InBounds(gridPosition.x, gridPosition.y) && wallMatrix[gridPosition.x, gridPosition.y];
+    }
+
+
+    public void SetHighlightMode(PlayerController.Mode mode)
+    {
+        highlightsOn = true;
+        highlightMode = mode;
+        highlightsDirty = true;
+    }
+
+    public void ClearHighlights()
+    {
+        highlightsOn = false;
+        highlightsDirty = true;
+    }
+
+    // As the map can update a lot, refresh once per frame
+    private void LateUpdate()
+    {
+        if (!highlightsDirty || !initialised) return;
+        highlightsDirty = false;
+        RefreshHighlights();
+    }
+
+    private void RefreshHighlights()
+    {
+        HashSet<Vector2Int> moveTargets = highlightsOn && highlightMode == PlayerController.Mode.move
+            ? GetMoveTargets()
+            : null;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Vector2Int pos = new Vector2Int(x, y);
+                bool isWall = wallMatrix[x, y];
+
+                bool floorOn = false;
+                bool wallOn = false;
+                if (highlightsOn)
+                {
+                    switch (highlightMode)
+                    {
+                        case PlayerController.Mode.raise: floorOn = !isWall && raisableMatrix[x, y]; break;
+                        case PlayerController.Mode.lower: wallOn = isWall && IsInnerTile(pos); break;
+                        case PlayerController.Mode.move:  floorOn = moveTargets.Contains(pos); break;
+                    }
+                }
+
+                SetFloorHighlight(pos, floorOn);
+                SetWallHighlight(pos, wallOn);
+            }
+        }
+    }
+
+    // Tiles the player can move to, the floor tiles right next to them.
+    private HashSet<Vector2Int> GetMoveTargets()
+    {
+        HashSet<Vector2Int> targets = new HashSet<Vector2Int>();
+        Vector2Int player = PlayerGridVar.Value;
+        Vector2Int[] directions = { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
+
+        foreach (Vector2Int dir in directions)
+        {
+            Vector2Int next = player + dir;
+            if (InBounds(next.x, next.y) && !wallMatrix[next.x, next.y])
+                targets.Add(next);
+        }
+        return targets;
+    }
+
+    // Outer border walls can never be lowered
+    private bool IsInnerTile(Vector2Int pos)
+    {
+        return pos.x > 0 && pos.y > 0 && pos.x < width - 1 && pos.y < height - 1;
+    }
+
+    private void SetWallHighlight(Vector2Int pos, bool on)
+    {
+        if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null) return;
+
+        Highlight highlight = wall.GetComponentInChildren<Highlight>(true);
+        if (highlight == null) return;
+
+        if (highlight.gameObject.activeSelf != on) highlight.gameObject.SetActive(on);
+        if (on) highlight.TurnOn(); // Green
+    }
+
+    private void SetFloorHighlight(Vector2Int pos, bool on)
+    {
+        if (!floorHighlights.TryGetValue(pos, out GameObject marker) || marker == null)
+        {
+            if (!on) return; // Only create markers when first needed
+            marker = CreateFloorHighlight(pos);
+            floorHighlights[pos] = marker;
+        }
+
+        if (marker.activeSelf != on) marker.SetActive(on);
+        if (on)
+        {
+            Highlight highlight = marker.GetComponent<Highlight>();
+            if (highlight != null) highlight.TurnOn(); // Green
+        }
+    }
+
+    // Floor doesn't have tiles like walls do so we make the highlights at runtime.
+    // Copies the wall prefab's Highlight object so it uses the same material.
+    private GameObject CreateFloorHighlight(Vector2Int pos)
+    {
+        Highlight template = wallPrefab != null ? wallPrefab.GetComponentInChildren<Highlight>(true) : null;
+
+        GameObject marker;
+        if (template != null)
+        {
+            marker = Instantiate(template.gameObject, transform);
+        }
+        else
+        {
+            marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            marker.transform.SetParent(transform, false);
+            if (fallbackHighlightMat == null) fallbackHighlightMat = MakeDefaultMaterial(new Color(0.1f, 1f, 0.1f));
+            marker.GetComponent<Renderer>().sharedMaterial = fallbackHighlightMat;
+        }
+
+        const float floorTop = 0.05f; // Half the floor thickness
+        const float markerThickness = 0.02f;
+
+        marker.name = "Highlight " + pos.x + "," + pos.y;
+        marker.SetActive(false);
+        Vector3 wallPos = WallWorldPosition(pos);
+        marker.transform.position = new Vector3(wallPos.x, transform.position.y + floorTop + markerThickness * 0.5f, wallPos.z);
+        marker.transform.localRotation = Quaternion.identity;
+        marker.transform.localScale = new Vector3(tileSize, markerThickness, tileSize);
+        return marker;
     }
 
 
