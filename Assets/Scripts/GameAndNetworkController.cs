@@ -395,11 +395,8 @@ public class GameAndNetworkController : NetworkBehaviour
         switch (mode) {
             // RunTarjans is called inside the functions themselves ()
             case PlayerController.Mode.raise : {
-                TryRaiseWall(board == 1 ? board1 : board2, blockID);
+                bool outcome = TryRaiseWall(board == 1 ? board1 : board2, blockID);
                 RunTarjans(board == 1 ? board1 : board2);
-                bool outcome;
-                if (board == 1) outcome = TryRaiseWall(board1, blockID);
-                else outcome = TryRaiseWall(board2, blockID);
                 if (outcome) {
                     if (playerID == 0) player1Tokens.Value -= 1;
                     else player2Tokens.Value -= 1;
@@ -407,24 +404,12 @@ public class GameAndNetworkController : NetworkBehaviour
                 break;
             }
             case PlayerController.Mode.lower : {
-                bool outcome;
-                if (board == 1) outcome = TryLowerWall(board1, blockID);
-                else outcome = TryLowerWall(board2, blockID);
+                bool outcome = TryLowerWall(board == 1 ? board1 : board2, blockID);
+                RunTarjans(board == 1 ? board1 : board2);
                 if (outcome) {
                     if (playerID == 0) player1Tokens.Value -= 1;
                     else player2Tokens.Value -= 1;
                 }
-                // RunTarjans
-
-                /*if (outcome) {
-                    if (playerID == 0) player1Tokens.Value -= 1;
-                    else player2Tokens.Value -= 1;
-                }*/
-                break;
-            }
-            case PlayerController.Mode.lower : {
-                TryLowerWall(board == 1 ? board1 : board2, blockID);
-                RunTarjans(board == 1 ? board1 : board2);
                 break;
             }
             case PlayerController.Mode.move : { 
