@@ -15,7 +15,10 @@ public class BoardController : MonoBehaviour
     void Awake()
     {
         if (angel != null)
+        {
             AngelMovement = angel.GetComponent<AngelMovement>();
+            if (AngelMovement == null) AngelMovement = angel.AddComponent<AngelMovement>();
+        }
     }
 
     void Start()
