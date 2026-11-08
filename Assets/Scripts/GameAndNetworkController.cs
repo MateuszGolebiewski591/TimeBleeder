@@ -45,8 +45,8 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
     public NetworkVariable<ulong> winnerDeclared;
-    public NetworkVariable<int> player1Tokens;
-    public NetworkVariable<int> player2Tokens;
+    public NetworkVariable<int> player1Tokens = new NetworkVariable<int>(3);
+    public NetworkVariable<int> player2Tokens = new NetworkVariable<int>(0);
 
 
     public NetworkVariable<bool> player1Ready;
@@ -275,7 +275,7 @@ public class GameAndNetworkController : NetworkBehaviour
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
             winnerDeclared.Value = 2;
-            player1Tokens.Value = 3;
+            player1Tokens.Value = 0;
             player2Tokens.Value = 0;
             StartMazeGeneration();
         }
@@ -326,7 +326,6 @@ public class GameAndNetworkController : NetworkBehaviour
             yield return null;
         }
         state.Value = GameState.GameActive;
-        currentPlayer.Value = 1;
         player1Tokens.Value = 3;
         StartCoroutine(GlobalTimerCountdown());
     }
@@ -349,19 +348,24 @@ public class GameAndNetworkController : NetworkBehaviour
         switch (mode) {
             case PlayerController.Mode.raise : {
                 bool outcome;
-                if (board == 1) TryRaiseWall(board1, blockID);
-                else TryRaiseWall(board2, blockID);
-                /*if (outcome) {
+                if (board == 1) outcome = TryRaiseWall(board1, blockID);
+                else outcome = TryRaiseWall(board2, blockID);
+                if (outcome) {
                     if (playerID == 0) player1Tokens.Value -= 1;
                     else player2Tokens.Value -= 1;
-                }*/
+                }
                 
                 //RunTarjans
                 break;
             }
             case PlayerController.Mode.lower : {
-                if (board == 1) TryLowerWall(board1, blockID);
-                else TryLowerWall(board2, blockID);
+                bool outcome;
+                if (board == 1) outcome = TryLowerWall(board1, blockID);
+                else outcome = TryLowerWall(board2, blockID);
+                if (outcome) {
+                    if (playerID == 0) player1Tokens.Value -= 1;
+                    else player2Tokens.Value -= 1;
+                }
                 // RunTarjans
                 break;
             }
