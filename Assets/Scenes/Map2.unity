@@ -659896,6 +659896,7 @@ MonoBehaviour:
   opponentTime: {fileID: 1136667938}
   winnerText: {fileID: 2062789493}
   tokenText: {fileID: 1035698741}
+  timeStopText: {fileID: 1728116902}
 --- !u!114 &1431691247
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -676365,6 +676366,7 @@ MonoBehaviour:
   board2MazeData: {fileID: 11400000, guid: c98dac744fa21464289f33ce185b3098, type: 2}
   board1MazeCentre: {fileID: 168288006}
   board2MazeCentre: {fileID: 577074361}
+  numWallsToDrop: 1
   mazeController: {fileID: 1464406490}
   angelMoveSpeed: 1
   spawnDistanceFromPlayer: 5
@@ -676406,6 +676408,16 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 3
   player2Tokens:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  player1TimeStops:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  player2TimeStops:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
