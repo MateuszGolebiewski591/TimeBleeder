@@ -28,6 +28,9 @@ public class GameAndNetworkController : NetworkBehaviour
     public float angelMoveSpeed = 1f;
     public float spawnDistanceFromPlayer = 5f;
 
+    // Just a set variable for now
+    public int wallsDroppedPerRound = 3;
+
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
 
 
@@ -278,6 +281,19 @@ public class GameAndNetworkController : NetworkBehaviour
         return true;
     }
 
+    public void DropRandomWalls(BoardController board, int count)
+    {
+        if (!IsServer || count <= 0 || mazeController == null) return;
+
+        List<Vector2Int> candidates = mazeController.GetLowerableWalls(GetMazeData(board));
+        for (int i = 0; i < count && candidates.Count > 0; i++)
+        {
+            int pick = UnityEngine.Random.Range(0, candidates.Count);
+            TryLowerWall(board, candidates[pick]); // Handles syncing, animation and Tarjan's
+            candidates.RemoveAt(pick);
+        }
+    }
+
     // Writes one tile to the board's synced list, which is what clients react to
     private void PublishBlock(BoardController board, Vector2Int position, bool isWall)
     {
@@ -414,6 +430,8 @@ public class GameAndNetworkController : NetworkBehaviour
             currentPlayer.Value = 0;
             player1Tokens.Value = 3;
         }
+
+        // TODO: Drop random walls after round!!!
     }
 
     [Rpc(SendTo.Server)]
