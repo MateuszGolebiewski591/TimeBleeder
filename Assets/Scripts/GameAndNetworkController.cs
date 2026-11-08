@@ -594,11 +594,13 @@ public class GameAndNetworkController : NetworkBehaviour
         if (currentPlayer.Value == 0) {
             currentPlayer.Value = 1;
             player2Tokens.Value = 3;
+            player1Tokens.Value = 1;
             DropRandomWalls(board1, numWallsToDrop);
         }
         else {
             currentPlayer.Value = 0;
             player1Tokens.Value = 3;
+            player2Tokens.Value = 1;
             DropRandomWalls(board2, numWallsToDrop);
         }
         if (tS != null) StopCoroutine(tS);

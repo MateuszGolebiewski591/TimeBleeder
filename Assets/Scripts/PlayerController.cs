@@ -118,7 +118,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     private void RayCast() {
-        if (!isMyTurn) return;
+        //if (!isMyTurn) return;
         Ray ray = GetComponent<Camera>().ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
@@ -135,6 +135,8 @@ public class PlayerController : NetworkBehaviour
             int boardNum;
             if (builder.isBoard1) boardNum = 1;
             else boardNum = 2;
+            if (OwnerClientId == 0 && boardNum == 1 && !isMyTurn) return;
+            if (OwnerClientId == 1 && boardNum == 2 && !isMyTurn) return; 
             ganc.SelectTileRPC(currentMode, pos, boardNum);
 
         }
