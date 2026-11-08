@@ -18,7 +18,7 @@ public class GameAndNetworkController : NetworkBehaviour
     [Tooltip("The MazeBuilder object for each board (walls are built centred on it). Empty = the board's own transform.")]
     [SerializeField] private Transform board1MazeCentre;
     [SerializeField] private Transform board2MazeCentre;
-    [SerializeField] private int numWallsToDrop = 1;
+    [SerializeField] private int numWallsToDrop = 10;
 
     public MazeController mazeController;
     public MazeController Maze => mazeController;
@@ -133,6 +133,8 @@ public class GameAndNetworkController : NetworkBehaviour
         RunTarjans(board2);
 
         boardsInitialised.Value = true;
+        DropRandomWalls(board1, numWallsToDrop*3);
+        DropRandomWalls(board2, numWallsToDrop*3);
     }
 
     private void FixedUpdate()
@@ -328,6 +330,7 @@ public class GameAndNetworkController : NetworkBehaviour
             blocks[i] = updated;
             if (++sent % 80 == 0) yield return nextTick;
         }
+        DropRandomWalls(board, numWallsToDrop);
     }
 
     // These update the server's maze data and the synced block list for the MazeBuilders to then update their visuals.
@@ -490,12 +493,20 @@ public class GameAndNetworkController : NetworkBehaviour
 
     private IEnumerator GlobalTimerCountdown() {
         int prev = 0;
+        int ro = 9;
         while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
             if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
             else player2TimeGained.Value += Time.deltaTime;
             GlobalTime.Value -= Time.deltaTime;
+            
+            int val = (int)Math.Ceiling(GlobalTime.Value);
+            if ((val / 10) < ro) {
+                ro -= 1;
+                BoardController board = currentPlayer.Value == 0 ? board1 : board2;
+                DropRandomWalls(board, numWallsToDrop);
+            }
+            
             if (GlobalTime.Value < 10f) {
-                int val = (int)Math.Ceiling(GlobalTime.Value);
                 if (prev != val) {
                     prev = val;
                     AudioManager.Instance.PlayClockSoundRPC();
@@ -574,7 +585,7 @@ public class GameAndNetworkController : NetworkBehaviour
         isTimeStop.Value = 1;
         angelMoveSpeed = 0f;
         yield return new WaitForSeconds(5f);
-        angelMoveSpeed = 1f;
+        angelMoveSpeed = 2.5f;
         tS = null;
         isTimeStop.Value = 0;
     }
@@ -592,7 +603,7 @@ public class GameAndNetworkController : NetworkBehaviour
         }
         if (tS != null) StopCoroutine(tS);
         tS = null;
-        angelMoveSpeed = 1f;
+        angelMoveSpeed = 2.5f;
         isTimeStop.Value = 0;
         AudioManager.Instance.PlaySwitchRPC();
     }

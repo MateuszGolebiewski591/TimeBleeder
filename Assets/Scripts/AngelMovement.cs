@@ -5,8 +5,8 @@ using UnityEngine;
 // the angel towards whatever position it is given.
 public class AngelMovement : MonoBehaviour
 {
-    public float smoothMoveSpeed = 5f; // Speed at which the angel moves (smoothly)
-    public float smoothRotationSpeed = 360f; // Rotation speed in degrees per second
+    public float smoothMoveSpeed = 50f; // Speed at which the angel moves (smoothly)
+    public float smoothRotationSpeed = 3600f; // Rotation speed in degrees per second
 
     private Vector3 movementTarget;
     private bool isMoving;
