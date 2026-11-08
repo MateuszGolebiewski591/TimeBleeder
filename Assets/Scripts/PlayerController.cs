@@ -119,7 +119,7 @@ public class PlayerController : NetworkBehaviour
 
     private void RayCast() {
         if (!isMyTurn) return;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = GetComponent<Camera>().ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             if (hit.collider.gameObject.GetComponent<TimeTurner>() != null) {

@@ -39,16 +39,18 @@ public class FocusLighting : MonoBehaviour
         Camera cam = GetLocalCamera();
         if (cam == null || areas == null || areas.Length == 0) return;
 
-        // Closest area to the camera is the one being looked at
+        // The area the camera is pointing most directly at is the one being looked at
+        // (distance alone doesn't work when a camera spot sits between two boards)
         Area focused = null;
-        float closest = float.MaxValue;
+        float bestAlignment = float.MinValue;
         foreach (Area area in areas)
         {
             if (area.centre == null) continue;
-            float distance = Vector3.Distance(cam.transform.position, area.centre.position);
-            if (distance < closest)
+            Vector3 toArea = (area.centre.position - cam.transform.position).normalized;
+            float alignment = Vector3.Dot(cam.transform.forward, toArea); // 1 = straight ahead
+            if (alignment > bestAlignment)
             {
-                closest = distance;
+                bestAlignment = alignment;
                 focused = area;
             }
         }
