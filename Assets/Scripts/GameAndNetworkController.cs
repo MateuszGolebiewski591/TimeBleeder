@@ -502,13 +502,19 @@ public class GameAndNetworkController : NetworkBehaviour
                 player1TimeGained.Value += Time.deltaTime;
                 p1acum += Time.deltaTime;
                 p2acum = 0;
-                if (p1acum > 15f) DropRandomWalls(board1, numWallsToDrop*2);
+                if (p1acum > 15f) {
+                    DropRandomWalls(board1, numWallsToDrop*2);
+                    p1acum = 0;
+                }
             }
             else {
                 player2TimeGained.Value += Time.deltaTime;
                 p2acum += Time.deltaTime;
                 p1acum = 0;
-                if (p2acum > 15f) DropRandomWalls(board2, numWallsToDrop*2);
+                if (p2acum > 15f) {
+                    DropRandomWalls(board2, numWallsToDrop*2);
+                    p2acum = 0;
+                }
             }
             GlobalTime.Value -= Time.deltaTime;
             
