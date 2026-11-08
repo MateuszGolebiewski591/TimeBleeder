@@ -15,6 +15,12 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private Material floorMaterial;
     [SerializeField] private bool isBoard1 = false;
 
+    [Header("Wall Animation")]
+    [Tooltip("Seconds a wall takes to rise out of / sink into the floor.")]
+    [SerializeField] private float wallAnimDuration = 0.35f;
+    [Tooltip("Shape of the rise/sink, 0 = fully sunk, 1 = fully raised.")]
+    [SerializeField] private AnimationCurve wallAnimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
     private bool widthReceived = false;
     private bool heightReceived = false;
     private int width;
@@ -24,6 +30,7 @@ public class MazeBuilder : MonoBehaviour
 
     private bool[,] wallMatrix;
     private readonly Dictionary<Vector2Int, GameObject> wallObjects = new Dictionary<Vector2Int, GameObject>();
+    private readonly Dictionary<Vector2Int, Coroutine> wallAnimations = new Dictionary<Vector2Int, Coroutine>();
     private Material wallMat;
 
 
@@ -159,6 +166,9 @@ public class MazeBuilder : MonoBehaviour
 
     private void ResetBoard()
     {
+        foreach (Coroutine c in wallAnimations.Values)
+            if (c != null) StopCoroutine(c);
+        wallAnimations.Clear();
         wallObjects.Clear();
         Clear();
         wallMatrix = null;
@@ -179,31 +189,70 @@ public class MazeBuilder : MonoBehaviour
         else LowerBlock(pos);
     }
 
-    // Instantly adds a wall. Animation can be added here later.
+    // Wall rises up out of the floor
     private void RaiseBlock(Vector2Int pos)
     {
-        if (wallObjects.TryGetValue(pos, out GameObject existing) && existing != null) return;
+        if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null)
+        {
+            wall = SpawnBlock(transform, "Wall " + pos.x + "," + pos.y, WallWorldPosition(pos, 0f),
+                new Vector3(tileSize, wallHeight, tileSize), wallPrefab, wallMat);
+            wallObjects[pos] = wall;
+        }
 
-        wallObjects[pos] = SpawnBlock(transform, "Wall " + pos.x + "," + pos.y, WallWorldPosition(pos),
-            new Vector3(tileSize, wallHeight, tileSize), wallPrefab, wallMat);
+        wall.SetActive(true);
+        AnimateWall(pos, wall, true);
     }
 
-    // Instantly removes a wall. Animation can be added here later.
+    // Wall sinks into the floor, then is hidden (and reused if raised again)
     private void LowerBlock(Vector2Int pos)
     {
-        if (!wallObjects.TryGetValue(pos, out GameObject wall)) return;
-
-        wallObjects.Remove(pos);
-        if (wall != null) Destroy(wall);
+        if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null) return;
+        AnimateWall(pos, wall, false);
     }
 
-    // World position of a standing wall on this tile
-    private Vector3 WallWorldPosition(Vector2Int pos)
+    private void AnimateWall(Vector2Int pos, GameObject wall, bool raise)
+    {
+        if (wallAnimations.TryGetValue(pos, out Coroutine running) && running != null)
+            StopCoroutine(running);
+
+        wallAnimations[pos] = StartCoroutine(AnimateWallRoutine(pos, wall, raise));
+    }
+
+    private IEnumerator AnimateWallRoutine(Vector2Int pos, GameObject wall, bool raise)
+    {
+        Transform t = wall.transform;
+        float sunkY = WallWorldPosition(pos, 0f).y;
+        float raisedY = WallWorldPosition(pos, 1f).y;
+
+        // Start from wherever it currently is, so reversing mid-animation is smooth
+        float start = Mathf.InverseLerp(sunkY, raisedY, t.position.y);
+        float end = raise ? 1f : 0f;
+        float duration = wallAnimDuration * Mathf.Abs(end - start);
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Lerp(start, end, Mathf.Clamp01(elapsed / duration));
+            t.position = WallWorldPosition(pos, wallAnimCurve.Evaluate(progress));
+            yield return null;
+        }
+
+        t.position = WallWorldPosition(pos, end);
+
+        // Hide sunk walls so they can't be clicked or collided with under the floor
+        if (!raise) wall.SetActive(false);
+
+        wallAnimations.Remove(pos);
+    }
+
+    // World position of a wall on this tile. raised: 0 = top level with the floor, 1 = standing fully up
+    private Vector3 WallWorldPosition(Vector2Int pos, float raised = 1f)
     {
         Vector3 centre = transform.position;
         return centre + new Vector3(
             (pos.x - (width - 1) * 0.5f) * tileSize,
-            wallHeight * 0.5f,
+            Mathf.Lerp(-wallHeight * 0.5f, wallHeight * 0.5f, raised),
             (pos.y - (height - 1) * 0.5f) * tileSize);
     }
 
