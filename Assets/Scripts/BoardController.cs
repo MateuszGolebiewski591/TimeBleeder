@@ -5,6 +5,7 @@ public class BoardController : MonoBehaviour
     public GameObject player;
     public GameObject angel;
     public AngelMovement AngelMovement { get; private set; }
+    public AngelMovement PlayerMovement { get; private set; } // Same slide-and-turn script as the angel
 
     [SerializeField] private MazeBuilder mazeBuilder;
 
@@ -18,6 +19,11 @@ public class BoardController : MonoBehaviour
         {
             AngelMovement = angel.GetComponent<AngelMovement>();
             if (AngelMovement == null) AngelMovement = angel.AddComponent<AngelMovement>();
+        }
+        if (player != null)
+        {
+            PlayerMovement = player.GetComponent<AngelMovement>();
+            if (PlayerMovement == null) PlayerMovement = player.AddComponent<AngelMovement>();
         }
     }
 

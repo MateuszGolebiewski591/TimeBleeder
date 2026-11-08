@@ -97,7 +97,7 @@ public class UIManager : MonoBehaviour
     private void UpdatePlayer2Time(float prev, float nextf) {
         int next = (int)nextf;
         if (player == 1) currentPlayerTime.text = $"Your Time: {next/60}:{next%60:D2}";
-        else opponentTime.text = $"Your Time: {next/60}:{next%60:D2}";
+        else opponentTime.text = $"Enemy Time: {next/60}:{next%60:D2}";
     }
 
     private void UpdateGameOverScreen(ulong prev, ulong winner) {

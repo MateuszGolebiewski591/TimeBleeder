@@ -169,8 +169,20 @@ public class GameAndNetworkController : NetworkBehaviour
         Transform root = GetMazeRoot(board, mazeCentre);
         if (root == null || width.Value <= 0 || height.Value <= 0) return;
 
-        board.player.transform.position = MazeController.GridToWorld(root.position, width.Value, height.Value, mazeData.tileSize, playerGrid);
+        Vector3 target = MazeController.GridToWorld(root.position, width.Value, height.Value, mazeData.tileSize, playerGrid);
+        // Jump straight there on first placement, or if it moved more than one tile (maze was regenerated)
+        bool snap = shown == null || Vector2Int.Distance(shown.Value, playerGrid) > 1.5f;
+
+        if (board.PlayerMovement != null) board.PlayerMovement.SetTarget(target, snap);
+        else board.player.transform.position = target;
+
         shown = playerGrid;
+    }
+
+    //The player's tile. Use this rather than the player object's position
+    private Vector2Int GetPlayerGrid(BoardController board)
+    {
+        return board == board1 ? board1PlayerGrid.Value : board2PlayerGrid.Value;
     }
 
     private void ShowAngel(BoardController board, MazeData mazeData, Transform mazeCentre, Vector2Int angelGrid, ref Vector2Int? shown)
@@ -244,7 +256,7 @@ public class GameAndNetworkController : NetworkBehaviour
         if (timer < 1f / angelMoveSpeed) return;
         timer = 0f;
 
-        Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
+        Vector2Int playerGrid = GetPlayerGrid(board);
         Vector2Int nextAngelGrid = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
 
         // If the angel is actually on the grid, or about to step on, catch the player
@@ -273,10 +285,10 @@ public class GameAndNetworkController : NetworkBehaviour
         // End their turn (same as SwitchTurnRPC)
         SwitchTurn();
 
-        RegenerateBoard(board);
+        StartCoroutine(RegenerateBoard(board));
     }
 
-    private void RegenerateBoard(BoardController board)
+    private IEnumerator RegenerateBoard(BoardController board)
     {
         bool isBoard1 = board == board1;
         MazeData mazeData = GetMazeData(board);
@@ -287,21 +299,35 @@ public class GameAndNetworkController : NetworkBehaviour
             isBoard1 ? board1PlayerGrid : board2PlayerGrid);
 
         bool[,] floor = mazeData.GetFloorData();
-        if (floor == null) return;
-
-        NetworkList<BlockData> blocks = isBoard1 ? board1Blocks : board2Blocks;
-        for (int i = 0; i < blocks.Count; i++)
-        {
-            BlockData old = blocks[i];
-            BlockData updated = new BlockData(old.posWidth, old.posHeight, floor[old.posWidth, old.posHeight], false);
-            if (!updated.Equals(old)) blocks[i] = updated;
-        }
+        if (floor == null) yield break;
 
         // Give the player a moment before the angel starts moving again
         if (isBoard1) board1AngelTimer = 0f;
         else board2AngelTimer = 0f;
 
-        RunTarjans(board);
+        // Work out Tarjan's result first so each tile is only sent once
+        HashSet<Vector2Int> raisable = new HashSet<Vector2Int>();
+        if (board.player != null)
+        {
+            Vector2Int angelGrid = isBoard1 ? board1AngelGrid.Value : board2AngelGrid.Value;
+            Vector2Int playerGrid = GetPlayerGrid(board);
+            raisable.UnionWith(mazeController.GetAvailableWallPositions(mazeData, angelGrid, playerGrid));
+        }
+
+        // Send the changes 80 tiles per network tick. All at once is too big an update
+        // for the connection and the client stops receiving anything.
+        WaitForSeconds nextTick = new WaitForSeconds(1f / NetworkManager.NetworkConfig.TickRate);
+        NetworkList<BlockData> blocks = isBoard1 ? board1Blocks : board2Blocks;
+        int sent = 0;
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            BlockData old = blocks[i];
+            Vector2Int pos = new Vector2Int(old.posWidth, old.posHeight);
+            BlockData updated = new BlockData(pos.x, pos.y, floor[pos.x, pos.y], raisable.Contains(pos));
+            if (updated.Equals(old)) continue;
+            blocks[i] = updated;
+            if (++sent % 80 == 0) yield return nextTick;
+        }
     }
 
     // These update the server's maze data and the synced block list for the MazeBuilders to then update their visuals.
@@ -313,7 +339,7 @@ public class GameAndNetworkController : NetworkBehaviour
 
         // Use the angel's logical tile, which is already the tile it's moving into
         Vector2Int angelGrid = board == board1 ? board1AngelGrid.Value : board2AngelGrid.Value;
-        Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
+        Vector2Int playerGrid = GetPlayerGrid(board);
 
         if (!mazeController.CanRaiseWall(mazeData, position, angelGrid, playerGrid))
             return false;
@@ -588,7 +614,7 @@ public class GameAndNetworkController : NetworkBehaviour
         if (board.player != null)
         {
             Vector2Int angelGrid = board == board1 ? board1AngelGrid.Value : board2AngelGrid.Value;
-            Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
+            Vector2Int playerGrid = GetPlayerGrid(board);
             allowed.UnionWith(mazeController.GetAvailableWallPositions(mazeData, angelGrid, playerGrid));
         }
 
