@@ -108,6 +108,9 @@ public class GameAndNetworkController : NetworkBehaviour
             }
         }
 
+        RunTarjans(board1);
+        RunTarjans(board2);
+
         boardsInitialised.Value = true;
     }
 
@@ -204,7 +207,11 @@ public class GameAndNetworkController : NetworkBehaviour
         timer = 0f;
 
         Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
-        angelGridVar.Value = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
+        Vector2Int nextAngelGrid = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
+        if (nextAngelGrid == angelGridVar.Value) return;
+
+        angelGridVar.Value = nextAngelGrid;
+        RunTarjans(board); // Angel moved, so which tiles block it may have changed
     }
 
     // These update the server's maze data and the synced block list for the MazeBuilders to then update their visuals.
@@ -340,16 +347,15 @@ public class GameAndNetworkController : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, int board, RpcParams rpcParams = default) {
         switch (mode) {
+            // RunTarjans is called inside the functions themselves ()
             case PlayerController.Mode.raise : {
-                if (board == 1) TryRaiseWall(board1, blockID);
-                else TryRaiseWall(board2, blockID);
-                //RunTarjans
+                TryRaiseWall(board == 1 ? board1 : board2, blockID);
+                RunTarjans(board == 1 ? board1 : board2);
                 break;
             }
             case PlayerController.Mode.lower : {
-                if (board == 1) TryLowerWall(board1, blockID);
-                else TryLowerWall(board2, blockID);
-                // RunTarjans
+                TryLowerWall(board == 1 ? board1 : board2, blockID);
+                RunTarjans(board == 1 ? board1 : board2);
                 break;
             }
             case PlayerController.Mode.move : { 
@@ -387,11 +393,35 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
 
-    private void RunTarjans() { // Called After every block placed / removed 
+    // Depends on where the angel and player are, so call it after any wall change AND
+    // whenever the angel (or player) moves to a new tile.
 
+    private void RunTarjans(BoardController board) {
+        if (!IsServer || board == null || mazeController == null) return;
+
+        MazeData mazeData = GetMazeData(board);
+        if (mazeData == null || !mazeData.IsGenerated) return;
+
+        NetworkList<BlockData> blocks = board == board1 ? board1Blocks : board2Blocks;
+        if (blocks.Count == 0) return;
+
+        // No player = nothing to protect, so nothing is marked as raisable
+        HashSet<Vector2Int> allowed = new HashSet<Vector2Int>();
+        if (board.player != null)
+        {
+            Vector2Int angelGrid = board == board1 ? board1AngelGrid.Value : board2AngelGrid.Value;
+            Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
+            allowed.UnionWith(mazeController.GetAvailableWallPositions(mazeData, angelGrid, playerGrid));
+        }
+
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            BlockData block = blocks[i];
+            bool canBeRaised = allowed.Contains(new Vector2Int(block.posWidth, block.posHeight));
+            if (block.canBeRaised == canBeRaised) continue; // Only send tiles that changed
+
+            block.canBeRaised = canBeRaised;
+            blocks[i] = block;
+        }
     }
-
-
-
-
 }
