@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkConnector
   ShowTopMostFoldoutHeaderGroup: 1
-  gameSceneName: NetworkTestScene
+  gameSceneName: Map2
 --- !u!4 &32585277
 Transform:
   m_ObjectHideFlags: 0
