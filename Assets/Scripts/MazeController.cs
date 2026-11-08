@@ -266,49 +266,38 @@ public class MazeController : MonoBehaviour
         return position.x >= 0 && position.x < grid.GetLength(0) && position.y >= 0 && position.y < grid.GetLength(1);
     }
 
-    public void RaiseWall(MazeData mazeData, Vector2Int position)
+    // Lowering is allowed on any inner wall. The outer border always stays up.
+    public bool CanLowerWall(MazeData mazeData, Vector2Int position)
     {
-        if (!mazeData.IsGenerated)
-        {
-            Debug.LogError("Maze data not initialized.");
-            return;
-        }
-
+        if (mazeData == null || !mazeData.IsGenerated) return false;
         bool[,] walls = mazeData.GetWallData();
-        bool[,] floor = mazeData.GetFloorData();
+        if (!InBounds(walls, position)) return false;
+        if (!walls[position.x, position.y]) return false; // Already floor
 
-        if (!InBounds(walls, position))
-        {
-            Debug.LogError("Position out of bounds.");
-            return;
-        }
-
-        if (walls[position.x, position.y])
-            return; // Already a wall
-
-        walls[position.x, position.y] = true;
-        floor[position.x, position.y] = false;
-
-        float tileSize = mazeData.tileSize;
-
-        // // TODO: change
-        // mazeGenerator.SpawnBlock(
-        //     mazeData.Root,
-        //     "Wall " + position.x + "," + position.y,
-        //     mazeData.Centre + new Vector3(
-        //         (position.x - (walls.GetLength(0) - 1) * 0.5f) * tileSize,
-        //         mazeData.wallHeight / 2f,
-        //         (position.y - (walls.GetLength(1) - 1) * 0.5f) * tileSize),
-        //     new Vector3(tileSize, mazeData.wallHeight, tileSize),
-        //     mazeData.wallPrefab, mazeData.wallMaterial);
+        return position.x > 0 && position.y > 0
+            && position.x < walls.GetLength(0) - 1
+            && position.y < walls.GetLength(1) - 1;
     }
 
-    public void LowerWall(MazeData mazeData, Vector2Int position)
+    // Server only: updates the maze data. Visuals follow from the synced block list
+    // (see MazeBuilder), so nothing is spawned or destroyed here.
+    // Returns true if the tile actually changed.
+    public bool RaiseWall(MazeData mazeData, Vector2Int position)
     {
-        if (!mazeData.IsGenerated)
+        return SetWall(mazeData, position, true);
+    }
+
+    public bool LowerWall(MazeData mazeData, Vector2Int position)
+    {
+        return SetWall(mazeData, position, false);
+    }
+
+    private bool SetWall(MazeData mazeData, Vector2Int position, bool isWall)
+    {
+        if (mazeData == null || !mazeData.IsGenerated)
         {
             Debug.LogError("Maze data not initialized.");
-            return;
+            return false;
         }
 
         bool[,] walls = mazeData.GetWallData();
@@ -317,14 +306,14 @@ public class MazeController : MonoBehaviour
         if (!InBounds(walls, position))
         {
             Debug.LogError("Position out of bounds.");
-            return;
+            return false;
         }
 
-        walls[position.x, position.y] = false;
-        floor[position.x, position.y] = true;
+        if (walls[position.x, position.y] == isWall)
+            return false; // Already in that state
 
-        Transform wallTransform = mazeData.Root.Find("Wall " + position.x + "," + position.y);
-        if (wallTransform != null)
-            Destroy(wallTransform.gameObject);
+        walls[position.x, position.y] = isWall;
+        floor[position.x, position.y] = !isWall;
+        return true;
     }
 }

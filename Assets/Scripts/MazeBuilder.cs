@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MazeBuilder : MonoBehaviour
 {
@@ -13,20 +14,29 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private Material material;
     [SerializeField] private Material floorMaterial;
     [SerializeField] private bool isBoard1 = false;
+
+    [Header("Wall Animation")]
+    [Tooltip("Seconds a wall takes to rise out of / sink into the floor.")]
+    [SerializeField] private float wallAnimDuration = 0.35f;
+    [Tooltip("Shape of the rise/sink, 0 = fully sunk, 1 = fully raised.")]
+    [SerializeField] private AnimationCurve wallAnimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
     private bool widthReceived = false;
     private bool heightReceived = false;
     private int width;
     private int height;
     private bool initialised = false;
     private GameAndNetworkController ganc;
-    bool[,] board1Matrix;
-    bool[,] board2Matrix;
+
+    private bool[,] wallMatrix;
+    private readonly Dictionary<Vector2Int, GameObject> wallObjects = new Dictionary<Vector2Int, GameObject>();
+    private readonly Dictionary<Vector2Int, Coroutine> wallAnimations = new Dictionary<Vector2Int, Coroutine>();
+    private Material wallMat;
 
 
     private IEnumerator Start()
     {
         ganc = FindFirstObjectByType<GameAndNetworkController>();
-
 
         ganc.board1Blocks.OnListChanged += OnBoard1BlocksChanged;
         ganc.board2Blocks.OnListChanged += OnBoard2BlocksChanged;
@@ -48,24 +58,55 @@ public class MazeBuilder : MonoBehaviour
         TryInitialise();
     }
 
+    private void OnDestroy()
+    {
+        if (ganc == null) return;
+        ganc.board1Blocks.OnListChanged -= OnBoard1BlocksChanged;
+        ganc.board2Blocks.OnListChanged -= OnBoard2BlocksChanged;
+        ganc.width.OnValueChanged -= OnWidthChanged;
+        ganc.height.OnValueChanged -= OnHeightChanged;
+    }
+
     private void OnBoard1BlocksChanged(NetworkListEvent<BlockData> changeEvent)
     {
-        if (!initialised)
-        {
-            TryInitialise();
-            return;
-        }
-        AdjustBlock(changeEvent.Index, changeEvent.Value);
+        OnBlocksChanged(changeEvent, true);
     }
 
     private void OnBoard2BlocksChanged(NetworkListEvent<BlockData> changeEvent)
     {
+        OnBlocksChanged(changeEvent, false);
+    }
+
+    private void OnBlocksChanged(NetworkListEvent<BlockData> changeEvent, bool fromBoard1)
+    {
         if (!initialised)
         {
+            // Either list filling up can complete initialisation
             TryInitialise();
             return;
         }
-        AdjustBlock(changeEvent.Index, changeEvent.Value);
+
+        // Both builders hear both lists, only react to our own board
+        if (fromBoard1 != isBoard1) return;
+
+        switch (changeEvent.Type)
+        {
+            case NetworkListEvent<BlockData>.EventType.Value:
+            case NetworkListEvent<BlockData>.EventType.Add:
+            case NetworkListEvent<BlockData>.EventType.Insert:
+                AdjustBlock(changeEvent.Value);
+                break;
+
+            case NetworkListEvent<BlockData>.EventType.Clear:
+                // Board is being regenerated: wipe it and rebuild once the list refills
+                ResetBoard();
+                break;
+
+            case NetworkListEvent<BlockData>.EventType.Full:
+                ResetBoard();
+                TryInitialise();
+                break;
+        }
     }
 
     private void OnWidthChanged(int previous, int next)
@@ -101,39 +142,143 @@ public class MazeBuilder : MonoBehaviour
     }
 
     private void InitialiseBoard1() {
-        board1Matrix = new bool[width,height];
-        for (int i = 0; i < ganc.board1Blocks.Count; i++)
-        {
-            BlockData block = ganc.board1Blocks[i];
-            // canBeRaised = open floor, so the wall matrix is its inverse
-            board1Matrix[block.posWidth, block.posHeight] = !block.isFloor;
-        }
-
-        Build(board1Matrix, gameObject.transform);
+        InitialiseFromBlocks(ganc.board1Blocks);
     }
 
     private void InitialiseBoard2() {
-        board2Matrix = new bool[width,height];
-        for (int i = 0; i < ganc.board2Blocks.Count; i++)
+        InitialiseFromBlocks(ganc.board2Blocks);
+    }
+
+    // Fills wallMatrix (local record of what is shown) from a board's list and builds it
+    private void InitialiseFromBlocks(NetworkList<BlockData> blocks)
+    {
+        wallMatrix = new bool[width, height];
+        for (int i = 0; i < blocks.Count; i++)
         {
-            BlockData block = ganc.board2Blocks[i];
-            // canBeRaised = open floor, so the wall matrix is its inverse
-            board2Matrix[block.posWidth, block.posHeight] = !block.isFloor;
+            BlockData block = blocks[i];
+            if (!InBounds(block.posWidth, block.posHeight)) continue;
+            // isFloor = open floor, so the wall matrix is its inverse
+            wallMatrix[block.posWidth, block.posHeight] = !block.isFloor;
         }
 
-        Build(board2Matrix, gameObject.transform);
+        Build(wallMatrix, transform);
     }
 
-    private void AdjustBlock(int index, BlockData block) {
-        
+    private void ResetBoard()
+    {
+        foreach (Coroutine c in wallAnimations.Values)
+            if (c != null) StopCoroutine(c);
+        wallAnimations.Clear();
+        wallObjects.Clear();
+        Clear();
+        wallMatrix = null;
+        initialised = false;
     }
 
-    private void RaiseBlock() {
+    // Called whenever the server changes one block. Only acts if the wall state changed.
+    private void AdjustBlock(BlockData block)
+    {
+        if (wallMatrix == null || !InBounds(block.posWidth, block.posHeight)) return;
 
+        Vector2Int pos = new Vector2Int(block.posWidth, block.posHeight);
+        bool shouldBeWall = !block.isFloor;
+        if (wallMatrix[pos.x, pos.y] == shouldBeWall) return; // e.g. only canBeRaised changed
+
+        wallMatrix[pos.x, pos.y] = shouldBeWall;
+        if (shouldBeWall) RaiseBlock(pos);
+        else LowerBlock(pos);
     }
 
-    private void LowerBlock() {
+    // Wall rises up out of the floor
+    private void RaiseBlock(Vector2Int pos)
+    {
+        if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null)
+        {
+            wall = SpawnBlock(transform, "Wall " + pos.x + "," + pos.y, WallWorldPosition(pos, 0f),
+                new Vector3(tileSize, wallHeight, tileSize), wallPrefab, wallMat);
+            wallObjects[pos] = wall;
+        }
 
+        wall.SetActive(true);
+        AnimateWall(pos, wall, true);
+    }
+
+    // Wall sinks into the floor, then is hidden (and reused if raised again)
+    private void LowerBlock(Vector2Int pos)
+    {
+        if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null) return;
+        AnimateWall(pos, wall, false);
+    }
+
+    private void AnimateWall(Vector2Int pos, GameObject wall, bool raise)
+    {
+        if (wallAnimations.TryGetValue(pos, out Coroutine running) && running != null)
+            StopCoroutine(running);
+
+        wallAnimations[pos] = StartCoroutine(AnimateWallRoutine(pos, wall, raise));
+    }
+
+    private IEnumerator AnimateWallRoutine(Vector2Int pos, GameObject wall, bool raise)
+    {
+        Transform t = wall.transform;
+        float sunkY = WallWorldPosition(pos, 0f).y;
+        float raisedY = WallWorldPosition(pos, 1f).y;
+
+        // Start from wherever it currently is, so reversing mid-animation is smooth
+        float start = Mathf.InverseLerp(sunkY, raisedY, t.position.y);
+        float end = raise ? 1f : 0f;
+        float duration = wallAnimDuration * Mathf.Abs(end - start);
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = Mathf.Lerp(start, end, Mathf.Clamp01(elapsed / duration));
+            t.position = WallWorldPosition(pos, wallAnimCurve.Evaluate(progress));
+            yield return null;
+        }
+
+        t.position = WallWorldPosition(pos, end);
+
+        // Hide sunk walls so they can't be clicked or collided with under the floor
+        if (!raise) wall.SetActive(false);
+
+        wallAnimations.Remove(pos);
+    }
+
+    // World position of a wall on this tile. raised: 0 = top level with the floor, 1 = standing fully up
+    private Vector3 WallWorldPosition(Vector2Int pos, float raised = 1f)
+    {
+        Vector3 centre = transform.position;
+        return centre + new Vector3(
+            (pos.x - (width - 1) * 0.5f) * tileSize,
+            Mathf.Lerp(-wallHeight * 0.5f, wallHeight * 0.5f, raised),
+            (pos.y - (height - 1) * 0.5f) * tileSize);
+    }
+
+    private bool InBounds(int x, int y)
+    {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    // World point -> grid tile.
+    public bool TryGetGridPosition(Vector3 worldPoint, out Vector2Int gridPosition)
+    {
+        gridPosition = default;
+        if (!initialised) return false;
+
+        Vector3 local = worldPoint - transform.position;
+        int x = Mathf.FloorToInt(local.x / tileSize + width * 0.5f);
+        int y = Mathf.FloorToInt(local.z / tileSize + height * 0.5f);
+        if (!InBounds(x, y)) return false;
+
+        gridPosition = new Vector2Int(x, y);
+        return true;
+    }
+
+    public bool IsWall(Vector2Int gridPosition)
+    {
+        return wallMatrix != null && InBounds(gridPosition.x, gridPosition.y) && wallMatrix[gridPosition.x, gridPosition.y];
     }
 
 
@@ -167,25 +312,21 @@ public class MazeBuilder : MonoBehaviour
         int gridW = walls.GetLength(0);
         int gridH = walls.GetLength(1);
 
-        Material wallMat = material != null ? material : MakeDefaultMaterial(new Color(0.2f, 0.28f, 0.4f));
+        wallMat = material != null ? material : MakeDefaultMaterial(new Color(0.2f, 0.28f, 0.4f));
         Material floorMat = floorMaterial != null ? floorMaterial : MakeDefaultMaterial(new Color(0.85f, 0.85f, 0.8f));
-        int wallCount = 0;
 
         for (int x = 0; x < gridW; x++)
         {
             for (int y = 0; y < gridH; y++)
             {
                 if (!walls[x, y]) continue;
-                SpawnBlock(
+                Vector2Int pos = new Vector2Int(x, y);
+                wallObjects[pos] = SpawnBlock(
                     buildRoot,
-                    "Wall " + x + "," + y,
-                    buildCentre + new Vector3(
-                        (x - (gridW - 1) * 0.5f) * tileSize,
-                        wallHeight * 0.5f,
-                        (y - (gridH - 1) * 0.5f) * tileSize),
+                    "Wall " + pos.x + "," + pos.y,
+                    WallWorldPosition(pos),
                     new Vector3(tileSize, wallHeight, tileSize),
                     wallPrefab, wallMat);
-                wallCount++;
             }
         }
 
@@ -200,7 +341,7 @@ public class MazeBuilder : MonoBehaviour
         }
     }
 
-    public void SpawnBlock(Transform parent, string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
+    public GameObject SpawnBlock(Transform parent, string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
     {
         GameObject go = prefab != null
             ? Instantiate(prefab, parent)
@@ -214,5 +355,7 @@ public class MazeBuilder : MonoBehaviour
 
         if (prefab == null && mat != null)
             go.GetComponent<Renderer>().sharedMaterial = mat;
+
+        return go;
     }
 }
