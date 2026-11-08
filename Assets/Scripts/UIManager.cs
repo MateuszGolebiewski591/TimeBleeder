@@ -2,6 +2,10 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using System;
+using System.Collections.Generic;
+using Unity.Netcode;
+using Unity.Services.Multiplayer;
 
 public class UIManager : MonoBehaviour
 {
@@ -111,7 +115,28 @@ public class UIManager : MonoBehaviour
         mainMenuButton.SetActive(true);
     }
 
-    public void ReturnToMainMenu() {
+    public async void ReturnToMainMenu() {
+        mainMenuButton.SetActive(false); // Stop double clicks while we leave
+
+        // Leave the multiplayer session so the next host/join starts fresh
+        try {
+            if (MultiplayerService.Instance != null) {
+                foreach (ISession session in new List<ISession>(MultiplayerService.Instance.Sessions.Values))
+                    await session.LeaveAsync();
+            }
+        }
+        catch (Exception e) {
+            Debug.LogWarning($"Failed to leave session: {e.Message}");
+        }
+
+        // Shut down and destroy the persistent network objects. Otherwise they survive into
+        // the next Lobby, replace the fresh ones, and the game scene never loads.
+        if (NetworkManager.Singleton != null) {
+            NetworkManager.Singleton.Shutdown();
+            Destroy(NetworkManager.Singleton.gameObject);
+        }
+        if (NetworkConnector.Instance != null) Destroy(NetworkConnector.Instance.gameObject);
+
         SceneManager.LoadSceneAsync("MainMenu");
     }
 

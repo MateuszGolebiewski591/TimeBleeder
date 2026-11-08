@@ -19,6 +19,24 @@ public class NetworkConnector : NetworkBehaviour
     void Start()
     {
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnServerStarted += OnServerStarted;
+    }
+
+    public override void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
+        }
+        if (Instance == this) Instance = null;
+        base.OnDestroy();
+    }
+
+    // Each new host session can start a game again
+    private void OnServerStarted()
+    {
+        gameStarting = false;
     }
 
     private void OnClientConnected(ulong clientId)
