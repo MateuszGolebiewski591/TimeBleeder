@@ -507,26 +507,6 @@ public class GameAndNetworkController : NetworkBehaviour
         // TODO: Drop random walls after round!!!
     }
 
-    [Rpc(SendTo.Server)]
-    public void AngelCaughtPlayerRPC(RpcParams rpcParams = default) {
-        ulong playerID = rpcParams.Receive.SenderClientId;
-        if (playerID == 0) {
-            float result = player1TimeGained.Value - 5f;
-            if (result < 0) result = 0;
-            player1TimeGained.Value = result;
-            currentPlayer.Value = 1;
-        }
-        else {
-            float result = player1TimeGained.Value - 5f;
-            if (result < 0) result = 0;
-            player1TimeGained.Value = result;
-            currentPlayer.Value =  0;
-        }
-        // Take 5 seconds penalty, force swap of players. 
-        // Regenarate map 
-    }
-
-
     // Depends on where the angel and player are, so call it after any wall change AND
     // whenever the angel (or player) moves to a new tile.
 
