@@ -495,9 +495,21 @@ public class GameAndNetworkController : NetworkBehaviour
     private IEnumerator GlobalTimerCountdown() {
         int prev = 0;
         int ro = 9;
+        float p1acum = 0;
+        float p2acum = 0;
         while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
-            if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
-            else player2TimeGained.Value += Time.deltaTime;
+            if (currentPlayer.Value == 0) {
+                player1TimeGained.Value += Time.deltaTime;
+                p1acum += Time.deltaTime;
+                p2acum = 0;
+                if (p1acum > 15f) DropRandomWalls(board1, numWallsToDrop*2)
+            }
+            else {
+                player2TimeGained.Value += Time.deltaTime;
+                p2acum += Time.deltaTime;
+                p1acum = 0;
+                if (p2acum > 15f) DropRandomWalls(board2, numWallsToDrop*2)
+            }
             GlobalTime.Value -= Time.deltaTime;
             
             int val = (int)Math.Ceiling(GlobalTime.Value);
