@@ -113,6 +113,10 @@ public class PlayerController : NetworkBehaviour
             MazeBuilder builder = hit.collider.GetComponentInParent<MazeBuilder>();
             if (builder == null) return;
             if (!builder.TryGetGridPosition(hit.point - hit.normal * 0.01f, out Vector2Int pos)) return;
+            int boardNum;
+            if (builder.isBoard1) boardNum = 1;
+            else boardNum = 2;
+            ganc.SelectTileRPC(currentMode, pos, boardNum);
 
         }
     }

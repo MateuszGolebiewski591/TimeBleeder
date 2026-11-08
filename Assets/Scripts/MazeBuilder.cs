@@ -13,7 +13,7 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private GameObject wallPrefab;
     [SerializeField] private Material material;
     [SerializeField] private Material floorMaterial;
-    [SerializeField] private bool isBoard1 = false;
+    [SerializeField] public bool isBoard1 = false;
 
     [Header("Wall Animation")]
     [Tooltip("Seconds a wall takes to rise out of / sink into the floor.")]

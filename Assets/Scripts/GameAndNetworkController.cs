@@ -338,13 +338,17 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, RpcParams rpcParams = default) {
+    public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, int board, RpcParams rpcParams = default) {
         switch (mode) {
             case PlayerController.Mode.raise : {
-                //RunYarjans
+                if (board == 1) TryRaiseWall(board1, blockID);
+                else TryRaiseWall(board2, blockID);
+                //RunTarjans
                 break;
             }
             case PlayerController.Mode.lower : {
+                if (board == 1) TryLowerWall(board1, blockID);
+                else TryLowerWall(board2, blockID);
                 // RunTarjans
                 break;
             }
