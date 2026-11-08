@@ -1,61 +1,71 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Does all maze work for whichever MazeData it is given. It holds no maze of its own,
+// so one MazeController can run any number of mazes.
 public class MazeController : MonoBehaviour
 {
-    [SerializeField] MazeData mazeData;
-    public GameObject centreAnchor;
-
-    private GameObject wallPrefab => mazeData.wallPrefab;
-    private float tileSize => mazeData.tileSize;
-    private float wallHeight => mazeData.wallHeight;
-
     private MazeGenerator mazeGenerator;
-
-    private bool[,] walls;
-    private bool[,] floor;
+    private readonly List<MazeData> generatedMazes = new List<MazeData>();
 
     void Awake()
     {
         mazeGenerator = GetComponent<MazeGenerator>();
     }
 
-    public void GenerateMaze()
+    // Generates the maze data for a maze centred on root. root must be the transform the
+    // MazeBuilder builds under, so grid <-> world conversions line up with the built walls.
+    public bool GenerateMaze(MazeData mazeData, Transform root)
     {
         if (mazeGenerator == null)
         {
             Debug.LogError("MazeGenerator component not found on the GameObject.");
-            return;
+            return false;
         }
 
-        mazeGenerator.centrePosition = GetMazeCentre();
-        mazeGenerator.Generate();
+        if (mazeData == null)
+        {
+            Debug.LogError("MazeController: GenerateMaze was given no MazeData.");
+            return false;
+        }
+
+        if (root == null)
+        {
+            Debug.LogError("MazeController: GenerateMaze was given no root transform.");
+            return false;
+        }
+
+        // Must come before Generate, as SetInstance clears any old maze arrays
+        mazeData.SetInstance(root, root.position);
+        mazeGenerator.Generate(mazeData);
+
+        if (!generatedMazes.Contains(mazeData))
+            generatedMazes.Add(mazeData);
+        return true;
     }
 
-    public int GetMazeSize()
+    // Finds which generated maze an object (e.g. a clicked wall) belongs to
+    /*public MazeData FindMazeData(Transform mazeObject)
     {
-        return Mathf.Max(mazeGenerator.width, mazeGenerator.height);
-    }
+        foreach (MazeData mazeData in generatedMazes)
+        {
+            if (mazeData.Root != null && mazeObject.IsChildOf(mazeData.Root))
+                return mazeData;
+        }
+        return null;
+    }*/
 
-    public bool[,] GetFloor()
+    public int GetMazeSize(MazeData mazeData)
     {
-        return mazeData.GetFloorData();
+        return Mathf.Max(mazeData.width, mazeData.height);
     }
 
-    private Vector3 GetMazeCentre()
-    {
-        if (centreAnchor != null)
-            return centreAnchor.transform.position;
-        else
-            return this.transform.position;
-    }
-
-    public Vector2Int WorldToMazeGrid(Vector3 worldPosition)
+    public Vector2Int WorldToMazeGrid(MazeData mazeData, Vector3 worldPosition)
     {
         bool[,] mazeFloor = mazeData.GetFloorData();
-        Vector3 mazeCentre = GetMazeCentre();
-        float originX = mazeCentre.x - mazeFloor.GetLength(0) * tileSize * 0.5f;
-        float originZ = mazeCentre.z - mazeFloor.GetLength(1) * tileSize * 0.5f;
+        float tileSize = mazeData.tileSize;
+        float originX = mazeData.Centre.x - mazeFloor.GetLength(0) * tileSize * 0.5f;
+        float originZ = mazeData.Centre.z - mazeFloor.GetLength(1) * tileSize * 0.5f;
 
         int x = Mathf.FloorToInt((worldPosition.x - originX) / tileSize);
         int z = Mathf.FloorToInt((worldPosition.z - originZ) / tileSize);
@@ -64,16 +74,22 @@ public class MazeController : MonoBehaviour
             Mathf.Clamp(z, 0, mazeFloor.GetLength(1) - 1));
     }
 
-    // mazeFloor param kept so the angel can still call this the same way
-    public Vector3 MazeGridToWorld(Vector2Int gridPosition, bool[,] mazeFloor)
+    public Vector3 MazeGridToWorld(MazeData mazeData, Vector2Int gridPosition)
     {
-        Vector3 mazeCentre = GetMazeCentre();
-        float originX = mazeCentre.x - mazeFloor.GetLength(0) * tileSize * 0.5f;
-        float originZ = mazeCentre.z - mazeFloor.GetLength(1) * tileSize * 0.5f;
+        bool[,] mazeFloor = mazeData.GetFloorData();
+        return GridToWorld(mazeData.Centre, mazeFloor.GetLength(0), mazeFloor.GetLength(1), mazeData.tileSize, gridPosition);
+    }
+
+    // Same conversion without needing generated maze data, so clients can use it
+    // with the synced grid size and the maze root's position
+    public static Vector3 GridToWorld(Vector3 centre, int gridWidth, int gridHeight, float tileSize, Vector2Int gridPosition)
+    {
+        float originX = centre.x - gridWidth * tileSize * 0.5f;
+        float originZ = centre.z - gridHeight * tileSize * 0.5f;
 
         float worldX = originX + (gridPosition.x + 0.5f) * tileSize;
         float worldZ = originZ + (gridPosition.y + 0.5f) * tileSize;
-        return new Vector3(worldX, 0f, worldZ);
+        return new Vector3(worldX, centre.y, worldZ);
     }
 
     public bool IsWalkable(bool[,] mazeFloor, Vector2Int position)
@@ -83,7 +99,7 @@ public class MazeController : MonoBehaviour
             && mazeFloor[position.x, position.y];
     }
 
-    public void FindRandomWalkablePosition(out Vector2Int randomPosition)
+    public Vector2Int FindRandomWalkablePosition(MazeData mazeData)
     {
         bool[,] mazeFloor = mazeData.GetFloorData();
         int width = mazeFloor.GetLength(0);
@@ -98,12 +114,11 @@ public class MazeController : MonoBehaviour
             y = Random.Range(0, height);
         } while (!mazeFloor[x, y]);
 
-        randomPosition = new Vector2Int(x, y);
+        return new Vector2Int(x, y);
     }
 
     // Same as above but has to be at least minDistance away from a position
-    // Old version was inefficient
-    public void FindRandomWalkablePosition(Vector2Int awayFrom, float minDistance, out Vector2Int randomPosition)
+    public Vector2Int FindRandomWalkablePosition(MazeData mazeData, Vector2Int awayFrom, float minDistance)
     {
         bool[,] mazeFloor = mazeData.GetFloorData();
         List<Vector2Int> validPositions = new List<Vector2Int>();
@@ -132,28 +147,20 @@ public class MazeController : MonoBehaviour
 
         // If nothing is far enough away just use the furthest position
         if (validPositions.Count > 0)
-            randomPosition = validPositions[Random.Range(0, validPositions.Count)];
-        else
-            randomPosition = furthestPosition;
+            return validPositions[Random.Range(0, validPositions.Count)];
+        return furthestPosition;
     }
 
-    // Display all available wall positions to raise, that don't block the angel from reaching the player
-    public List<Vector2Int> QueryWallRaise(Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    public bool CanRaiseWall(MazeData mazeData, Vector2Int position, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
     {
-        List<Vector2Int> wallPositions = GetAvailableWallPositions(angelGridPosition, playerGridPosition);
-
-        return wallPositions;
+        return GetAvailableWallPositions(mazeData, angelGridPosition, playerGridPosition).Contains(position);
     }
 
-    public bool CanRaiseWall(Vector2Int position, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
-    {
-        return GetAvailableWallPositions(angelGridPosition, playerGridPosition).Contains(position);
-    }
-
+    // All floor tiles a wall can be raised on without blocking the angel from reaching the player.
     // Uses Tarjan's articulation points, starting the search from the angel.
-    public List<Vector2Int> GetAvailableWallPositions(Vector2Int angelGridPosition, Vector2Int playerGridPosition)
+    public List<Vector2Int> GetAvailableWallPositions(MazeData mazeData, Vector2Int angelGridPosition, Vector2Int playerGridPosition)
     {
-        floor = mazeData.GetFloorData();
+        bool[,] floor = mazeData.GetFloorData();
         int width = floor.GetLength(0);
         int height = floor.GetLength(1);
 
@@ -253,18 +260,24 @@ public class MazeController : MonoBehaviour
         return blockingPositions;
     }
 
-    public void RaiseWall(Vector2Int position)
-    {
-        walls = mazeData.GetWallData();
-        floor = mazeData.GetFloorData();
 
-        if (walls == null || floor == null)
+    private bool InBounds(bool[,] grid, Vector2Int position)
+    {
+        return position.x >= 0 && position.x < grid.GetLength(0) && position.y >= 0 && position.y < grid.GetLength(1);
+    }
+
+    public void RaiseWall(MazeData mazeData, Vector2Int position)
+    {
+        if (!mazeData.IsGenerated)
         {
             Debug.LogError("Maze data not initialized.");
             return;
         }
 
-        if (position.x < 0 || position.x >= walls.GetLength(0) || position.y < 0 || position.y >= walls.GetLength(1))
+        bool[,] walls = mazeData.GetWallData();
+        bool[,] floor = mazeData.GetFloorData();
+
+        if (!InBounds(walls, position))
         {
             Debug.LogError("Position out of bounds.");
             return;
@@ -273,49 +286,45 @@ public class MazeController : MonoBehaviour
         if (walls[position.x, position.y])
             return; // Already a wall
 
-        walls[position.x, position.y] = true; // Raise wall
-        floor[position.x, position.y] = false; // Remove floor
+        walls[position.x, position.y] = true;
+        floor[position.x, position.y] = false;
 
-        mazeData.SetMazeData(walls, floor);
+        float tileSize = mazeData.tileSize;
 
-        mazeGenerator.SpawnBlock(
-            "Wall " + position.x + "," + position.y,
-            new Vector3(
-                (position.x - (walls.GetLength(0) - 1) * 0.5f) * tileSize,
-                wallHeight / 2f,
-                (position.y - (walls.GetLength(1) - 1) * 0.5f) * tileSize),
-            new Vector3(tileSize, wallHeight, tileSize),
-            wallPrefab, mazeGenerator.material);
+        // // TODO: change
+        // mazeGenerator.SpawnBlock(
+        //     mazeData.Root,
+        //     "Wall " + position.x + "," + position.y,
+        //     mazeData.Centre + new Vector3(
+        //         (position.x - (walls.GetLength(0) - 1) * 0.5f) * tileSize,
+        //         mazeData.wallHeight / 2f,
+        //         (position.y - (walls.GetLength(1) - 1) * 0.5f) * tileSize),
+        //     new Vector3(tileSize, mazeData.wallHeight, tileSize),
+        //     mazeData.wallPrefab, mazeData.wallMaterial);
     }
 
-    public void LowerWall(Vector2Int position)
+    public void LowerWall(MazeData mazeData, Vector2Int position)
     {
-        walls = mazeData.GetWallData();
-        floor = mazeData.GetFloorData();
-
-        if (walls == null || floor == null)
+        if (!mazeData.IsGenerated)
         {
             Debug.LogError("Maze data not initialized.");
             return;
         }
 
-        if (position.x < 0 || position.x >= walls.GetLength(0) || position.y < 0 || position.y >= walls.GetLength(1))
+        bool[,] walls = mazeData.GetWallData();
+        bool[,] floor = mazeData.GetFloorData();
+
+        if (!InBounds(walls, position))
         {
             Debug.LogError("Position out of bounds.");
             return;
         }
 
-        walls[position.x, position.y] = false; // Lower wall
-        floor[position.x, position.y] = true; // Add floor
+        walls[position.x, position.y] = false;
+        floor[position.x, position.y] = true;
 
-        mazeData.SetMazeData(walls, floor);
-
-        // Destroy the wall GameObject at this position
-        string wallName = "Wall " + position.x + "," + position.y;
-        Transform wallTransform = transform.Find(wallName);
+        Transform wallTransform = mazeData.Root.Find("Wall " + position.x + "," + position.y);
         if (wallTransform != null)
-        {
             Destroy(wallTransform.gameObject);
-        }
     }
 }

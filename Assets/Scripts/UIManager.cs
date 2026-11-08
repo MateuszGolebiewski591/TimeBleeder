@@ -1,18 +1,22 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class UIManager : MonoBehaviour
 {
     [SerializeField] private GameObject readyUpPanel;
     [SerializeField] private GameObject countDownPanel;
     [SerializeField] private GameObject mainGamePanel;
-
+    [SerializeField] private GameObject gameEndPanel;
+    [SerializeField] private GameObject mainMenuButton;
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
     [SerializeField] private TextMeshProUGUI countDownPanelText;
     [SerializeField] private TextMeshProUGUI mainTimerText;
     [SerializeField] private TextMeshProUGUI currentPlayerTime;
     [SerializeField] private TextMeshProUGUI opponentTime;
+    [SerializeField] private TextMeshProUGUI winnerText;
 
     private GameAndNetworkController ganc; 
     private ulong player;
@@ -26,6 +30,9 @@ public class UIManager : MonoBehaviour
         ganc.state.OnValueChanged += GameStateChange;
         ganc.countDownTime.OnValueChanged += UpdateTimer;
         ganc.GlobalTime.OnValueChanged += UpdateGlobalTime;
+        ganc.player1TimeGained.OnValueChanged += UpdatePlayer1Time;
+        ganc.player2TimeGained.OnValueChanged += UpdatePlayer2Time;
+        ganc.winnerDeclared.OnValueChanged += UpdateGameOverScreen;
     }
 
     private void UpdateReadyUpPanel1(bool previousStatus, bool newStatus) {
@@ -52,6 +59,10 @@ public class UIManager : MonoBehaviour
             countDownPanel.SetActive(false);
             mainGamePanel.SetActive(true);
         }
+        if (newValue == GameAndNetworkController.GameState.GameEnd) {
+            mainGamePanel.SetActive(false);
+            gameEndPanel.SetActive(true);
+        }
     }
 
     private void UpdateTimer(int prev, int next) {
@@ -60,6 +71,33 @@ public class UIManager : MonoBehaviour
 
     private void UpdateGlobalTime(float prev, float nextf) {
         int next = (int)nextf;
-        mainTimerText.text = $"{(int)90/60}:{next%60:D2}";
+        mainTimerText.text = $"{next/60}:{next%60:D2}";
+    }
+
+    private void UpdatePlayer1Time(float prev, float nextf) {
+        int next = (int)nextf;
+        if (player == 0) currentPlayerTime.text = $"Your Time: {next/60}:{next%60:D2}";
+        else opponentTime.text = $"Enemy Time: {next/60}:{next%60:D2}";
+    }
+
+    private void UpdatePlayer2Time(float prev, float nextf) {
+        int next = (int)nextf;
+        if (player == 1) currentPlayerTime.text = $"Your Time: {next/60}:{next%60:D2}";
+        else opponentTime.text = $"Your Time: {next/60}:{next%60:D2}";
+    }
+
+    private void UpdateGameOverScreen(ulong prev, ulong winner) {
+        if (winner == player) winnerText.text = "You Win";
+        else winnerText.text = "You Lose";
+        StartCoroutine(MainMenuTimer());
+    }
+
+    private IEnumerator MainMenuTimer() {
+        yield return new WaitForSeconds(5f);
+        mainMenuButton.SetActive(true);
+    }
+
+    public void ReturnToMainMenu() {
+        SceneManager.LoadSceneAsync("MainMenu");
     }
 }

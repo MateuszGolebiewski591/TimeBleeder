@@ -6,25 +6,9 @@ using UnityEngine;
 
 public class MazeGenerator : MonoBehaviour
 {
-    [SerializeField] MazeData mazeData;
-
-    [Header("Maze size (number of passage cells)")]
-    [Min(1)] public int width = 15;
-    [Min(1)] public int height = 15;
-
-    [Header("Appearance")]
-    private GameObject wallPrefab => mazeData.wallPrefab;
-
-    private float tileSize => mazeData.tileSize;
-    private float wallHeight => mazeData.wallHeight;
-
-    public bool buildFloor = true;
-
-    public Material material;
-    public Material floorMaterial;
-
-    [Header("Camera")]
-    public bool frameMainCamera = true; // Move camera above the board
+    private MazeData mazeData;
+    public int width { get; private set; }
+    public int height { get; private set; }
 
     [Header("Randomness")]
     public bool useSeed = false;
@@ -33,7 +17,7 @@ public class MazeGenerator : MonoBehaviour
     [Header("Behaviour")]
     public bool generateOnStart = false;
 
-    public Vector3 centrePosition;
+    // Where the maze currently being built goes
 
     private bool[,] walls; // true = wall, false = open passage. Indexed [x, y].
     private bool[,] floor; // true = open floor, the inverse of walls
@@ -51,56 +35,32 @@ public class MazeGenerator : MonoBehaviour
         if (generateOnStart) Generate();
     }
 
-    [ContextMenu("Generate")]
     public void Generate()
     {
-        Clear();
+        Generate(mazeData);
+    }
+
+    // Builds the maze as children of root, centred on centre
+    public void Generate(MazeData mazeData)
+    {
+        if (mazeData == null)
+        {
+            Debug.LogError("MazeGenerator: no MazeData assigned.");
+            return;
+        }
+
+        this.mazeData = mazeData;
+        SetVariables();
         System.Random rng = useSeed ? new System.Random(seed) : new System.Random();
         Carve(rng);
         BuildFloorMask();
-        Build();
         mazeData.SetMazeData(walls, floor);
-        // if (frameMainCamera && Application.isPlaying) FrameCamera();
     }
 
-    private void FrameCamera()
+    private void SetVariables()
     {
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        float sizeX = (2 * width + 1) * tileSize;
-        float sizeZ = (2 * height + 1) * tileSize;
-        Vector3 centre = transform.TransformPoint(new Vector3((sizeX - tileSize) * 0.5f, 0f, (sizeZ - tileSize) * 0.5f));
-
-        float fovRad = cam.fieldOfView * Mathf.Deg2Rad;
-        // The vertical field of view must cover the maze's depth, and the
-        // horizontal one (vertical * aspect) must cover its width.
-        float needed = Mathf.Max(sizeZ, sizeX / cam.aspect) * 0.5f;
-        float h = needed / Mathf.Tan(fovRad * 0.5f) * 1.1f + wallHeight;
-
-        cam.orthographic = false;
-        cam.transform.position = centre + Vector3.up * h;
-        cam.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-    }
-
-    private Material MakeDefaultMaterial(Color color)
-    {
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Material m = new Material(temp.GetComponent<Renderer>().sharedMaterial);
-        m.color = color;
-        if (Application.isPlaying) Destroy(temp); else DestroyImmediate(temp);
-        return m;
-    }
-
-    [ContextMenu("Clear")]
-    public void Clear()
-    {
-        for (int i = transform.childCount - 1; i >= 0; i--)
-        {
-            GameObject child = transform.GetChild(i).gameObject;
-            if (Application.isPlaying) Destroy(child);
-            else DestroyImmediate(child);
-        }
+        width = mazeData.width;
+        height = mazeData.height;
     }
 
     // Recursive backtracker algorithm
@@ -163,57 +123,5 @@ public class MazeGenerator : MonoBehaviour
         for (int x = 0; x < gridW; x++)
             for (int y = 0; y < gridH; y++)
                 floor[x, y] = !walls[x, y];
-    }
-
-    private void Build()
-    {
-        int gridW = walls.GetLength(0);
-        int gridH = walls.GetLength(1);
-
-        Material wallMat = material != null ? material : MakeDefaultMaterial(new Color(0.2f, 0.28f, 0.4f));
-        Material floorMat = floorMaterial != null ? floorMaterial : MakeDefaultMaterial(new Color(0.85f, 0.85f, 0.8f));
-        int wallCount = 0;
-        
-        for (int x = 0; x < gridW; x++)
-        {
-            for (int y = 0; y < gridH; y++)
-            {
-                if (!walls[x, y]) continue;
-                SpawnBlock(
-                    "Wall " + x + "," + y,
-                    new Vector3(
-                        (x - (gridW - 1) * 0.5f) * tileSize,
-                        wallHeight * 0.5f,
-                        (y - (gridH - 1) * 0.5f) * tileSize),
-                    new Vector3(tileSize, wallHeight, tileSize),
-                    wallPrefab, wallMat);
-                wallCount++;
-            }
-        }
-
-        if (buildFloor)
-        {
-            const float floorThickness = 0.1f;
-            SpawnBlock(
-                "Floor",
-                new Vector3(0,0,0),
-                new Vector3(gridW * tileSize, floorThickness, gridH * tileSize), null, floorMat);
-        }
-    }
-
-    public void SpawnBlock(string blockName, Vector3 worldPos, Vector3 scale, GameObject prefab, Material mat)
-    {
-        GameObject go = prefab != null
-            ? Instantiate(prefab, transform)
-            : GameObject.CreatePrimitive(PrimitiveType.Cube);
-
-        go.name = blockName;
-        go.transform.SetParent(transform, false);
-        go.transform.position = worldPos + centrePosition;
-        go.transform.localRotation = Quaternion.identity;
-        go.transform.localScale = scale;
-
-        if (prefab == null && mat != null)
-            go.GetComponent<Renderer>().sharedMaterial = mat;
     }
 }
