@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc552b117f5c1e74db633f9ba1ab8ff9, type: 3}
   m_Name: MazeData2
   m_EditorClassIdentifier: Assembly-CSharp::MazeData
-  wallPrefab: {fileID: 2109836269897651392, guid: 17bb841982310a742bdea6ee28088c68, type: 3}
+  width: 12
+  height: 8
   tileSize: 1
-  wallHeight: 0.5
+  anchorOffset: {x: 0, y: 0, z: 0}
