@@ -10,6 +10,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject mainGamePanel;
     [SerializeField] private GameObject gameEndPanel;
     [SerializeField] private GameObject mainMenuButton;
+    [SerializeField] private GameObject timePanel;
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
     [SerializeField] private TextMeshProUGUI countDownPanelText;
@@ -39,6 +40,7 @@ public class UIManager : MonoBehaviour
         ganc.player2Tokens.OnValueChanged += TokenCount2;
         ganc.player1TimeStops.OnValueChanged += TimeStopCount1;
         ganc.player2TimeStops.OnValueChanged += TimeStopCount2;
+        ganc.isTimeStop.OnValueChanged += TimeStop;
     }
 
     private void UpdateReadyUpPanel1(bool previousStatus, bool newStatus) {
@@ -56,6 +58,11 @@ public class UIManager : MonoBehaviour
         player = playerID;
     }
 
+    public void TimeStop(int prev, int nexti) {
+        if (nexti == 1) timePanel.SetActive(true);
+        else timePanel.SetActive(false);
+    }
+
     private void GameStateChange(GameAndNetworkController.GameState prev, GameAndNetworkController.GameState newValue) {
         if (newValue == GameAndNetworkController.GameState.CountDown) {
             readyUpPanel.SetActive(false);
@@ -67,6 +74,7 @@ public class UIManager : MonoBehaviour
         }
         if (newValue == GameAndNetworkController.GameState.GameEnd) {
             mainGamePanel.SetActive(false);
+            timePanel.SetActive(false);
             gameEndPanel.SetActive(true);
         }
     }

@@ -69,6 +69,8 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<int> width;
     public NetworkVariable<int> height;
 
+    public NetworkVariable<int> isTimeStop;
+
     // Server-authoritative angel tiles. The server pathfinds and writes these;
     // every peer reads them and animates its angel towards them.
     public NetworkVariable<Vector2Int> board1AngelGrid = new NetworkVariable<Vector2Int>();
@@ -274,6 +276,7 @@ public class GameAndNetworkController : NetworkBehaviour
     // Time penalty, their turn ends, and their maze is regenerated.
     private void AngelCaughtPlayer(BoardController board)
     {
+        AudioManager.Instance.PlayDeathRPC();
         bool isBoard1 = board == board1; // board1 = player 1 (client 0), see FixedUpdate
 
         NetworkVariable<float> timeGained = isBoard1 ? player1TimeGained : player2TimeGained;
@@ -345,6 +348,7 @@ public class GameAndNetworkController : NetworkBehaviour
             return false;
 
         PublishBlock(board, position, true);
+        AudioManager.Instance.PlayPlaceBlockRPC();
         return true;
     }
 
@@ -362,6 +366,7 @@ public class GameAndNetworkController : NetworkBehaviour
             return false;
 
         PublishBlock(board, position, false);
+        AudioManager.Instance.PlayDestroyBlockRPC();
         return true;
     }
 
@@ -371,6 +376,7 @@ public class GameAndNetworkController : NetworkBehaviour
         if (!targets.Contains(position)) return false;
         if (playerID == 0) board1PlayerGrid.Value = position;
         else board2PlayerGrid.Value = position;
+        AudioManager.Instance.PlayPlayerMoveRPC();
         return true;
     }
 
@@ -419,6 +425,7 @@ public class GameAndNetworkController : NetworkBehaviour
             player2Tokens.Value = 0;
             player1TimeStops.Value = 0;
             player2TimeStops.Value = 0;
+            isTimeStop.Value = 0;
             StartMazeGeneration();
         }
     }
@@ -461,9 +468,15 @@ public class GameAndNetworkController : NetworkBehaviour
 
     private IEnumerator CountDownTimer() {
         float time = 3f;
+        int prev = 0;
         while (time > 0) {
             // Ceil so the display reads 3, 2, 1 rather than 2, 1, 0
-            countDownTime.Value = (int)Math.Ceiling(time);
+            int result = (int)Math.Ceiling(time);
+            if (result != prev) {
+                prev = result;
+                AudioManager.Instance.PlayClockSoundRPC();
+            }
+            countDownTime.Value = result;
             time -= Time.deltaTime;
             yield return null;
         }
@@ -471,14 +484,23 @@ public class GameAndNetworkController : NetworkBehaviour
         player1Tokens.Value = 3;
         player1TimeStops.Value = 3;
         player2TimeStops.Value = 3;
+        AudioManager.Instance.PlayStartGameRPC();
         StartCoroutine(GlobalTimerCountdown());
     }
 
     private IEnumerator GlobalTimerCountdown() {
+        int prev = 0;
         while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
             if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
             else player2TimeGained.Value += Time.deltaTime;
             GlobalTime.Value -= Time.deltaTime;
+            if (GlobalTime.Value < 10f) {
+                int val = (int)Math.Ceiling(GlobalTime.Value);
+                if (prev != val) {
+                    prev = val;
+                    AudioManager.Instance.PlayClockSoundRPC();
+                }
+            }
             yield return null;
         }
         state.Value = GameState.GameEnd;
@@ -548,10 +570,13 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
     private IEnumerator TimeStop() {
+        AudioManager.Instance.PlayTimeStopRPC();
+        isTimeStop.Value = 1;
         angelMoveSpeed = 0f;
         yield return new WaitForSeconds(5f);
         angelMoveSpeed = 1f;
         tS = null;
+        isTimeStop.Value = 0;
     }
 
     private void SwitchTurn() {
@@ -568,6 +593,8 @@ public class GameAndNetworkController : NetworkBehaviour
         if (tS != null) StopCoroutine(tS);
         tS = null;
         angelMoveSpeed = 1f;
+        isTimeStop.Value = 0;
+        AudioManager.Instance.PlaySwitchRPC();
     }
 
     // Depends on where the angel and player are, so call it after any wall change AND
