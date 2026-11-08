@@ -45,6 +45,8 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
     public NetworkVariable<ulong> winnerDeclared;
+    public NetworkVariable<int> player1Tokens;
+    public NetworkVariable<int> player2Tokens;
 
 
     public NetworkVariable<bool> player1Ready;
@@ -280,6 +282,8 @@ public class GameAndNetworkController : NetworkBehaviour
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
             winnerDeclared.Value = 2;
+            player1Tokens.Value = 3;
+            player2Tokens.Value = 0;
             StartMazeGeneration();
         }
     }
@@ -329,6 +333,8 @@ public class GameAndNetworkController : NetworkBehaviour
             yield return null;
         }
         state.Value = GameState.GameActive;
+        currentPlayer.Value = 1;
+        player1Tokens.Value = 3;
         StartCoroutine(GlobalTimerCountdown());
     }
 
@@ -346,11 +352,18 @@ public class GameAndNetworkController : NetworkBehaviour
 
     [Rpc(SendTo.Server)]
     public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, int board, RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
         switch (mode) {
             // RunTarjans is called inside the functions themselves ()
             case PlayerController.Mode.raise : {
                 TryRaiseWall(board == 1 ? board1 : board2, blockID);
                 RunTarjans(board == 1 ? board1 : board2);
+                bool outcome;
+
+                /*if (outcome) {
+                    if (playerID == 0) player1Tokens.Value -= 1;
+                    else player2Tokens.Value -= 1;
+                }*/
                 break;
             }
             case PlayerController.Mode.lower : {
@@ -369,8 +382,14 @@ public class GameAndNetworkController : NetworkBehaviour
     public void SwitchTurnRPC(RpcParams rpcParams = default) {
         ulong playerID = rpcParams.Receive.SenderClientId;
         if (playerID != currentPlayer.Value) return;
-        if (currentPlayer.Value == 0) currentPlayer.Value = 1;
-        else currentPlayer.Value = 0;
+        if (currentPlayer.Value == 0) {
+            currentPlayer.Value = 1;
+            player2Tokens.Value = 3;
+        }
+        else {
+            currentPlayer.Value = 0;
+            player1Tokens.Value = 3;
+        }
     }
 
     [Rpc(SendTo.Server)]

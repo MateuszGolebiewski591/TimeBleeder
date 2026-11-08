@@ -21,6 +21,7 @@ public class PlayerController : NetworkBehaviour
     private Coroutine movingForward = null;
     private Coroutine movingBackward = null;
     private bool isMyTurn = false;
+    private int tokenCount = 0;
 
     public enum Mode{
         raise, 
@@ -38,8 +39,14 @@ public class PlayerController : NetworkBehaviour
                 yield return null;
             }
             while (!ganc.IsSpawned) yield return null;
-            if (OwnerClientId == 0) localPlayerInfo = player1Info;
-            else if (OwnerClientId == 1) localPlayerInfo = player2Info;
+            if (OwnerClientId == 0) {
+                localPlayerInfo = player1Info;
+                ganc.player1Tokens.OnValueChanged += TokenCounter;
+            }
+            else if (OwnerClientId == 1) {
+                localPlayerInfo = player2Info;
+                ganc.player2Tokens.OnValueChanged += TokenCounter;
+            }
             InitCameraPos();
             ganc.state.OnValueChanged += GameStateChange;
             UI = FindFirstObjectByType<UIManager>();
@@ -56,6 +63,10 @@ public class PlayerController : NetworkBehaviour
         }
         yield return null;
     }
+
+    private void TokenCounter(int pred, int nexti) {
+        tokenCount = nexti;
+    } 
 
     private void UpdateTurn(ulong prev, ulong nextu) {
         if (nextu == OwnerClientId) isMyTurn = true;
@@ -113,6 +124,7 @@ public class PlayerController : NetworkBehaviour
             MazeBuilder builder = hit.collider.GetComponentInParent<MazeBuilder>();
             if (builder == null) return;
             if (!builder.TryGetGridPosition(hit.point - hit.normal * 0.01f, out Vector2Int pos)) return;
+            //if(tokenCount <= 0) return;
             int boardNum;
             if (builder.isBoard1) boardNum = 1;
             else boardNum = 2;
