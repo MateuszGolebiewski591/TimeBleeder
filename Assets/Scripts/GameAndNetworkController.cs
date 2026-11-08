@@ -27,6 +27,7 @@ public class GameAndNetworkController : NetworkBehaviour
     [Header("Angel Settings")]
     public float angelMoveSpeed = 1f;
     public float spawnDistanceFromPlayer = 5f;
+    public float catchPenalty = 5f; // Seconds taken off a player when the angel catches them
 
     // Just a set variable for now
     public int wallsDroppedPerRound = 3;
@@ -174,7 +175,8 @@ public class GameAndNetworkController : NetworkBehaviour
         if (root == null || width.Value <= 0 || height.Value <= 0) return;
 
         Vector3 target = MazeController.GridToWorld(root.position, width.Value, height.Value, mazeData.tileSize, angelGrid);
-        bool snap = shown == null; // First placement jumps straight there
+        // Jump straight there on first placement, or if it moved more than one tile (maze was regenerated)
+        bool snap = shown == null || Vector2Int.Distance(shown.Value, angelGrid) > 1.5f;
 
         if (board.AngelMovement != null) board.AngelMovement.SetTarget(target, snap);
         else board.angel.transform.position = target;
@@ -237,10 +239,61 @@ public class GameAndNetworkController : NetworkBehaviour
 
         Vector2Int playerGrid = mazeController.WorldToMazeGrid(mazeData, board.player.transform.position);
         Vector2Int nextAngelGrid = AngelPathfinder.NextStep(mazeData.GetFloorData(), angelGridVar.Value, playerGrid);
+
+        // If the angel is actually on the grid, or about to step on, catch the player
+        if (nextAngelGrid == playerGrid || angelGridVar.Value == playerGrid)
+        {
+            AngelCaughtPlayer(board);
+            return;
+        }
+
         if (nextAngelGrid == angelGridVar.Value) return;
 
         angelGridVar.Value = nextAngelGrid;
         RunTarjans(board); // Angel moved, so which tiles block it may have changed
+    }
+
+    // The angel reached the player on this board.
+    // Time penalty, their turn ends, and their maze is regenerated.
+    private void AngelCaughtPlayer(BoardController board)
+    {
+        bool isBoard1 = board == board1; // board1 = player 1 (client 0), see FixedUpdate
+
+        NetworkVariable<float> timeGained = isBoard1 ? player1TimeGained : player2TimeGained;
+        timeGained.Value = Mathf.Max(0f, timeGained.Value - catchPenalty);
+
+        // End their turn (same as SwitchTurnRPC)
+        SwitchTurn();
+
+        RegenerateBoard(board);
+    }
+
+    private void RegenerateBoard(BoardController board)
+    {
+        bool isBoard1 = board == board1;
+        MazeData mazeData = GetMazeData(board);
+
+        InitialiseBoardMaze(board, mazeData,
+            isBoard1 ? board1MazeCentre : board2MazeCentre,
+            isBoard1 ? board1AngelGrid : board2AngelGrid,
+            isBoard1 ? board1PlayerGrid : board2PlayerGrid);
+
+        bool[,] floor = mazeData.GetFloorData();
+        if (floor == null) return;
+
+        NetworkList<BlockData> blocks = isBoard1 ? board1Blocks : board2Blocks;
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            BlockData old = blocks[i];
+            BlockData updated = new BlockData(old.posWidth, old.posHeight, floor[old.posWidth, old.posHeight], false);
+            if (!updated.Equals(old)) blocks[i] = updated;
+        }
+
+        // Give the player a moment before the angel starts moving again
+        if (isBoard1) board1AngelTimer = 0f;
+        else board2AngelTimer = 0f;
+
+        RunTarjans(board);
     }
 
     // These update the server's maze data and the synced block list for the MazeBuilders to then update their visuals.
@@ -422,6 +475,10 @@ public class GameAndNetworkController : NetworkBehaviour
     public void SwitchTurnRPC(RpcParams rpcParams = default) {
         ulong playerID = rpcParams.Receive.SenderClientId;
         if (playerID != currentPlayer.Value) return;
+        SwitchTurn();
+    }
+
+    private void SwitchTurn() {
         if (currentPlayer.Value == 0) {
             currentPlayer.Value = 1;
             player2Tokens.Value = 3;
@@ -430,7 +487,6 @@ public class GameAndNetworkController : NetworkBehaviour
             currentPlayer.Value = 0;
             player1Tokens.Value = 3;
         }
-
         // TODO: Drop random walls after round!!!
     }
 
