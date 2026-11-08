@@ -359,7 +359,7 @@ public class MazeBuilder : MonoBehaviour
     }
 
     // Tiles the player can move to, the floor tiles right next to them.
-    private HashSet<Vector2Int> GetMoveTargets()
+    public HashSet<Vector2Int> GetMoveTargets()
     {
         HashSet<Vector2Int> targets = new HashSet<Vector2Int>();
         Vector2Int player = PlayerGridVar.Value;

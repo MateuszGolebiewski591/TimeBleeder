@@ -281,6 +281,15 @@ public class GameAndNetworkController : NetworkBehaviour
         return true;
     }
 
+    public bool TryMovePlayer(BoardController board, Vector2Int position, ulong playerID) {
+        MazeBuilder builder = board.GetMazeBuilder();
+        HashSet<Vector2Int> targets = builder.GetMoveTargets();
+        if (!targets.Contains(position)) return false;
+        if (playerID == 0) board1PlayerGrid.Value = position;
+        else board2PlayerGrid.Value = position;
+        return true;
+    }
+
     public void DropRandomWalls(BoardController board, int count)
     {
         if (!IsServer || count <= 0 || mazeController == null) return;
@@ -413,6 +422,13 @@ public class GameAndNetworkController : NetworkBehaviour
                 break;
             }
             case PlayerController.Mode.move : { 
+                bool outcome = false;
+                if (board == 1 && playerID == 0) outcome = TryMovePlayer(board1, blockID, playerID);
+                else if (board == 2 && playerID == 1) outcome = TryMovePlayer(board2, blockID, playerID);
+                if (outcome) {
+                    if (playerID == 0) player1Tokens.Value -= 1;
+                    else player2Tokens.Value -= 1; 
+                }
                 break;
             }
         }
