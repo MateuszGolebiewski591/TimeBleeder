@@ -39,7 +39,7 @@ public class BoardController : MonoBehaviour
         if (builder != null) builder.ClearHighlights();
     }
 
-    private MazeBuilder GetMazeBuilder()
+    public MazeBuilder GetMazeBuilder()
     {
         if (mazeBuilder != null) return mazeBuilder;
 
