@@ -39,6 +39,7 @@ public class MazeBuilder : MonoBehaviour
     private bool highlightsDirty = false;
     private readonly Dictionary<Vector2Int, GameObject> floorHighlights = new Dictionary<Vector2Int, GameObject>();
     private Material fallbackHighlightMat;
+    private Material fallbackBlockedMat;
 
     private NetworkVariable<Vector2Int> PlayerGridVar => isBoard1 ? ganc.board1PlayerGrid : ganc.board2PlayerGrid;
 
@@ -58,7 +59,6 @@ public class MazeBuilder : MonoBehaviour
         // OnValueChanged/OnListChanged, so wait for the spawn before reading them.
         while (!ganc.IsSpawned) yield return null;
 
-        // Read their current values in case they arrived before Start.
         width = ganc.width.Value;
         height = ganc.height.Value;
 
@@ -174,7 +174,7 @@ public class MazeBuilder : MonoBehaviour
         {
             BlockData block = blocks[i];
             if (!InBounds(block.posWidth, block.posHeight)) continue;
-            // isFloor = open floor, so the wall matrix is its inverse
+
             wallMatrix[block.posWidth, block.posHeight] = !block.isFloor;
             raisableMatrix[block.posWidth, block.posHeight] = block.canBeRaised;
         }
@@ -206,7 +206,7 @@ public class MazeBuilder : MonoBehaviour
         highlightsDirty = true;
 
         bool shouldBeWall = !block.isFloor;
-        if (wallMatrix[pos.x, pos.y] == shouldBeWall) return; // e.g. only canBeRaised changed
+        if (wallMatrix[pos.x, pos.y] == shouldBeWall) return;
 
         wallMatrix[pos.x, pos.y] = shouldBeWall;
         if (shouldBeWall) RaiseBlock(pos);
@@ -340,23 +340,32 @@ public class MazeBuilder : MonoBehaviour
                 Vector2Int pos = new Vector2Int(x, y);
                 bool isWall = wallMatrix[x, y];
 
-                bool floorOn = false;
-                bool wallOn = false;
+                // Tiles of the type this mode acts on are green if they can be clicked, red if not
+                TileHighlight floorState = TileHighlight.None;
+                TileHighlight wallState = TileHighlight.None;
                 if (highlightsOn)
                 {
                     switch (highlightMode)
                     {
-                        case PlayerController.Mode.raise: floorOn = !isWall && raisableMatrix[x, y]; break;
-                        case PlayerController.Mode.lower: wallOn = isWall && IsInnerTile(pos); break;
-                        case PlayerController.Mode.move:  floorOn = moveTargets.Contains(pos); break;
+                        case PlayerController.Mode.raise:
+                            if (!isWall) floorState = raisableMatrix[x, y] ? TileHighlight.Allowed : TileHighlight.Blocked;
+                            break;
+                        case PlayerController.Mode.lower:
+                            if (isWall) wallState = IsInnerTile(pos) ? TileHighlight.Allowed : TileHighlight.Blocked;
+                            break;
+                        case PlayerController.Mode.move:
+                            if (!isWall) floorState = moveTargets.Contains(pos) ? TileHighlight.Allowed : TileHighlight.Blocked;
+                            break;
                     }
                 }
 
-                SetFloorHighlight(pos, floorOn);
-                SetWallHighlight(pos, wallOn);
+                SetFloorHighlight(pos, floorState);
+                SetWallHighlight(pos, wallState);
             }
         }
     }
+
+    private enum TileHighlight { None, Allowed, Blocked }
 
     // Tiles the player can move to, the floor tiles right next to them.
     public HashSet<Vector2Int> GetMoveTargets()
@@ -380,36 +389,49 @@ public class MazeBuilder : MonoBehaviour
         return pos.x > 0 && pos.y > 0 && pos.x < width - 1 && pos.y < height - 1;
     }
 
-    private void SetWallHighlight(Vector2Int pos, bool on)
+    private void SetWallHighlight(Vector2Int pos, TileHighlight state)
     {
         if (!wallObjects.TryGetValue(pos, out GameObject wall) || wall == null) return;
 
         Highlight highlight = wall.GetComponentInChildren<Highlight>(true);
         if (highlight == null) return;
 
-        if (highlight.gameObject.activeSelf != on) highlight.gameObject.SetActive(on);
-        if (on) highlight.TurnOn(); // Green
+        ApplyHighlight(highlight.gameObject, state);
     }
 
-    private void SetFloorHighlight(Vector2Int pos, bool on)
+    private void SetFloorHighlight(Vector2Int pos, TileHighlight state)
     {
         if (!floorHighlights.TryGetValue(pos, out GameObject marker) || marker == null)
         {
-            if (!on) return; // Only create markers when first needed
+            if (state == TileHighlight.None) return; // Only create markers when first needed
             marker = CreateFloorHighlight(pos);
             floorHighlights[pos] = marker;
         }
 
+        ApplyHighlight(marker, state);
+    }
+
+    // Shows/hides a highlight object and sets it green (allowed) or red (blocked)
+    private void ApplyHighlight(GameObject marker, TileHighlight state)
+    {
+        bool on = state != TileHighlight.None;
         if (marker.activeSelf != on) marker.SetActive(on);
-        if (on)
+        if (!on) return;
+
+        Highlight highlight = marker.GetComponent<Highlight>();
+        if (highlight != null)
         {
-            Highlight highlight = marker.GetComponent<Highlight>();
-            if (highlight != null) highlight.TurnOn(); // Green
+            if (state == TileHighlight.Allowed) highlight.TurnOn(); // Green
+            else highlight.TurnOff(); // Red
+        }
+        else
+        {
+            // Fallback cube without the highlight shader - in case we forget to apply highlighter asset
+            marker.GetComponent<Renderer>().sharedMaterial = state == TileHighlight.Allowed ? fallbackHighlightMat : fallbackBlockedMat;
         }
     }
 
     // Floor doesn't have tiles like walls do so we make the highlights at runtime.
-    // Copies the wall prefab's Highlight object so it uses the same material.
     private GameObject CreateFloorHighlight(Vector2Int pos)
     {
         Highlight template = wallPrefab != null ? wallPrefab.GetComponentInChildren<Highlight>(true) : null;
@@ -424,6 +446,7 @@ public class MazeBuilder : MonoBehaviour
             marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
             marker.transform.SetParent(transform, false);
             if (fallbackHighlightMat == null) fallbackHighlightMat = MakeDefaultMaterial(new Color(0.1f, 1f, 0.1f));
+            if (fallbackBlockedMat == null) fallbackBlockedMat = MakeDefaultMaterial(new Color(1f, 0.1f, 0.1f));
             marker.GetComponent<Renderer>().sharedMaterial = fallbackHighlightMat;
         }
 
