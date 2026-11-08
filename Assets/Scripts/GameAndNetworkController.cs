@@ -485,6 +485,7 @@ public class GameAndNetworkController : NetworkBehaviour
         }
         state.Value = GameState.GameActive;
         player1Tokens.Value = 3;
+        player2Tokens.Value = 1;
         player1TimeStops.Value = 3;
         player2TimeStops.Value = 3;
         AudioManager.Instance.PlayStartGameRPC();
