@@ -44,6 +44,7 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<ulong> currentPlayer;
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
+    public NetworkVariable<ulong> winnerDeclared;
 
 
     public NetworkVariable<bool> player1Ready;
@@ -237,6 +238,7 @@ public class GameAndNetworkController : NetworkBehaviour
             playerReady[1] = false;
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
+            winnerDeclared.Value = 2;
             StartMazeGeneration();
         }
     }
@@ -290,13 +292,15 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
     private IEnumerator GlobalTimerCountdown() {
-        while (state.Value == GameState.GameActive) {
-            GlobalTime.Value -= Time.deltaTime;
+        while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
             if (currentPlayer.Value == 0) player1TimeGained.Value += Time.deltaTime;
             else player2TimeGained.Value += Time.deltaTime;
+            GlobalTime.Value -= Time.deltaTime;
             yield return null;
         }
-        currentPlayer.Value = 0;
+        state.Value = GameState.GameEnd;
+        if (player1TimeGained.Value > player2TimeGained.Value) winnerDeclared.Value = 0;
+        else winnerDeclared.Value = 1;
     }
 
     [Rpc(SendTo.Server)]
@@ -327,6 +331,19 @@ public class GameAndNetworkController : NetworkBehaviour
 
     [Rpc(SendTo.Server)]
     public void AngelCaughtPlayerRPC(RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
+        if (playerID == 0) {
+            float result = player1TimeGained.Value - 5f;
+            if (result < 0) result = 0;
+            player1TimeGained.Value = result;
+            currentPlayer.Value = 1;
+        }
+        else {
+            float result = player1TimeGained.Value - 5f;
+            if (result < 0) result = 0;
+            player1TimeGained.Value = result;
+            currentPlayer.Value =  0;
+        }
         // Take 5 seconds penalty, force swap of players. 
         // Regenarate map 
     }
