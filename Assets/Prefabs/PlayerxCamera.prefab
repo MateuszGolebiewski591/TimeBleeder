@@ -180,6 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
+  camMovementTime: 0.3
   player1Info: {fileID: 11400000, guid: a705c58c1b1551e47b315e089a1a819d, type: 2}
   player2Info: {fileID: 11400000, guid: 2aeeac768e9aba443937c29d5910f7ae, type: 2}
   localPlayerInfo: {fileID: 0}
