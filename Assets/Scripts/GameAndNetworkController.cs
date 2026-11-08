@@ -45,6 +45,8 @@ public class GameAndNetworkController : NetworkBehaviour
     public NetworkVariable<float> player1TimeGained;
     public NetworkVariable<float> player2TimeGained;
     public NetworkVariable<ulong> winnerDeclared;
+    public NetworkVariable<int> player1Tokens = new NetworkVariable<int>(3);
+    public NetworkVariable<int> player2Tokens = new NetworkVariable<int>(0);
 
 
     public NetworkVariable<bool> player1Ready;
@@ -273,6 +275,8 @@ public class GameAndNetworkController : NetworkBehaviour
             countDownTime.Value = 3;
             currentPlayer.Value = 0;
             winnerDeclared.Value = 2;
+            player1Tokens.Value = 0;
+            player2Tokens.Value = 0;
             StartMazeGeneration();
         }
     }
@@ -322,6 +326,7 @@ public class GameAndNetworkController : NetworkBehaviour
             yield return null;
         }
         state.Value = GameState.GameActive;
+        player1Tokens.Value = 3;
         StartCoroutine(GlobalTimerCountdown());
     }
 
@@ -338,13 +343,29 @@ public class GameAndNetworkController : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, RpcParams rpcParams = default) {
+    public void SelectTileRPC(PlayerController.Mode mode, Vector2Int blockID, int board, RpcParams rpcParams = default) {
+        ulong playerID = rpcParams.Receive.SenderClientId;
         switch (mode) {
             case PlayerController.Mode.raise : {
-                //RunYarjans
+                bool outcome;
+                if (board == 1) outcome = TryRaiseWall(board1, blockID);
+                else outcome = TryRaiseWall(board2, blockID);
+                if (outcome) {
+                    if (playerID == 0) player1Tokens.Value -= 1;
+                    else player2Tokens.Value -= 1;
+                }
+                
+                //RunTarjans
                 break;
             }
             case PlayerController.Mode.lower : {
+                bool outcome;
+                if (board == 1) outcome = TryLowerWall(board1, blockID);
+                else outcome = TryLowerWall(board2, blockID);
+                if (outcome) {
+                    if (playerID == 0) player1Tokens.Value -= 1;
+                    else player2Tokens.Value -= 1;
+                }
                 // RunTarjans
                 break;
             }
@@ -359,8 +380,14 @@ public class GameAndNetworkController : NetworkBehaviour
     public void SwitchTurnRPC(RpcParams rpcParams = default) {
         ulong playerID = rpcParams.Receive.SenderClientId;
         if (playerID != currentPlayer.Value) return;
-        if (currentPlayer.Value == 0) currentPlayer.Value = 1;
-        else currentPlayer.Value = 0;
+        if (currentPlayer.Value == 0) {
+            currentPlayer.Value = 1;
+            player2Tokens.Value = 3;
+        }
+        else {
+            currentPlayer.Value = 0;
+            player1Tokens.Value = 3;
+        }
     }
 
     [Rpc(SendTo.Server)]
