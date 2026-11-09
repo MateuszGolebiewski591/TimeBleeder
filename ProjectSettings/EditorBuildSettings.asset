@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Lobby.unity
     guid: e4a5ef17272a6f744bdfd69260d6f768
   - enabled: 1
-    path: Assets/Scenes/Map2.unity
+    path: Assets/Scenes/MainGame.unity
     guid: 5be1e1e1dfcbd7e46be6eb92bf01b68b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

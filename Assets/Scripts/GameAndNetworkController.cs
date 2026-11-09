@@ -498,37 +498,39 @@ public class GameAndNetworkController : NetworkBehaviour
         float p1acum = 0;
         float p2acum = 0;
         while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
-            if (currentPlayer.Value == 0) {
-                player1TimeGained.Value += Time.deltaTime;
-                p1acum += Time.deltaTime;
-                p2acum = 0;
-                if (p1acum > 15f) {
-                    DropRandomWalls(board1, numWallsToDrop*2);
-                    p1acum = 0;
-                }
-            }
-            else {
-                player2TimeGained.Value += Time.deltaTime;
-                p2acum += Time.deltaTime;
-                p1acum = 0;
-                if (p2acum > 15f) {
-                    DropRandomWalls(board2, numWallsToDrop*2);
+            if (isTimeStop.Value == 0) {
+                if (currentPlayer.Value == 0) {
+                    player1TimeGained.Value += Time.deltaTime;
+                    p1acum += Time.deltaTime;
                     p2acum = 0;
+                    if (p1acum > 15f) {
+                        DropRandomWalls(board1, numWallsToDrop*2);
+                        p1acum = 0;
+                    }
                 }
-            }
-            GlobalTime.Value -= Time.deltaTime;
-            
-            int val = (int)Math.Ceiling(GlobalTime.Value);
-            if ((val / 10) < ro) {
-                ro -= 1;
-                BoardController board = currentPlayer.Value == 0 ? board1 : board2;
-                DropRandomWalls(board, numWallsToDrop);
-            }
-            
-            if (GlobalTime.Value < 10f) {
-                if (prev != val) {
-                    prev = val;
-                    AudioManager.Instance.PlayClockSoundRPC();
+                else {
+                    player2TimeGained.Value += Time.deltaTime;
+                    p2acum += Time.deltaTime;
+                    p1acum = 0;
+                    if (p2acum > 15f) {
+                        DropRandomWalls(board2, numWallsToDrop*2);
+                        p2acum = 0;
+                    }
+                }
+                GlobalTime.Value -= Time.deltaTime;
+                
+                int val = (int)Math.Ceiling(GlobalTime.Value);
+                if ((val / 10) < ro) {
+                    ro -= 1;
+                    BoardController board = currentPlayer.Value == 0 ? board1 : board2;
+                    DropRandomWalls(board, numWallsToDrop);
+                }
+                
+                if (GlobalTime.Value < 10f) {
+                    if (prev != val) {
+                        prev = val;
+                        AudioManager.Instance.PlayClockSoundRPC();
+                    }
                 }
             }
             yield return null;
