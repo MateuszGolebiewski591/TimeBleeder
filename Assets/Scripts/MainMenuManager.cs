@@ -23,4 +23,8 @@ public class MainMenuManager : MonoBehaviour
     public void QuitGame() {
         Application.Quit();
     }
+
+    public void StartTutorial() {
+        SceneManager.LoadSceneAsync("Tutorial");
+    }
 }
