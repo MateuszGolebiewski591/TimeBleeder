@@ -13,6 +13,8 @@ public class UIManagerSingle : MonoBehaviour
     [SerializeField] private GameObject gameEndPanel;
     [SerializeField] private GameObject mainMenuButton;
     [SerializeField] private GameObject timePanel;
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private GameObject helpPanel;
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
     [SerializeField] private TextMeshProUGUI countDownPanelText;
@@ -25,6 +27,9 @@ public class UIManagerSingle : MonoBehaviour
 
     public GameController ganc; 
     private ulong player;
+    private bool paused = false;
+    private GameObject currentPanel;
+    private GameObject returnPanel;
 
     private void Start()
     {
@@ -43,6 +48,7 @@ public class UIManagerSingle : MonoBehaviour
         ganc.player1TimeStops.OnValueChanged += TimeStopCount1;
         ganc.player2TimeStops.OnValueChanged += TimeStopCount2;
         ganc.isTimeStop.OnValueChanged += TimeStop;
+        currentPanel = readyUpPanel;
     }
 
     private void UpdateReadyUpPanel1(bool newStatus) {
@@ -67,17 +73,14 @@ public class UIManagerSingle : MonoBehaviour
 
     private void GameStateChange(GameController.GameState newValue) {
         if (newValue == GameController.GameState.CountDown) {
-            readyUpPanel.SetActive(false);
-            countDownPanel.SetActive(true);
+            SetPanel(countDownPanel);
         }
         if (newValue == GameController.GameState.GameActive) {
-            countDownPanel.SetActive(false);
-            mainGamePanel.SetActive(true);
+            SetPanel(mainGamePanel);
         }
         if (newValue == GameController.GameState.GameEnd) {
-            mainGamePanel.SetActive(false);
             timePanel.SetActive(false);
-            gameEndPanel.SetActive(true);
+            SetPanel(gameEndPanel);
         }
     }
 
@@ -87,7 +90,7 @@ public class UIManagerSingle : MonoBehaviour
 
     private void UpdateGlobalTime(float nextf) {
         int next = (int)nextf;
-        mainTimerText.text = $"{next/60}:{next%60:D2}";
+        //mainTimerText.text = $"{next/60}:{next%60:D2}";
     }
 
     private void UpdatePlayer1Time(float nextf) {
@@ -130,11 +133,36 @@ public class UIManagerSingle : MonoBehaviour
 
     private void TimeStopCount1(int nexti) {
         if (player == 1) return; 
-        timeStopText.text = $"E - Stop Time ({nexti})";
+        timeStopText.text = $"Time Stops ({nexti})";
     }
 
     private void TimeStopCount2(int nexti) {
         if (player == 0) return; 
-        timeStopText.text = $"E - Stop Time ({nexti})";
+        timeStopText.text = $"Time Stops ({nexti})";
+    }
+
+    public void UnPause() {
+        if (SetPanel(returnPanel)) paused = false;
+    }
+
+    public void Pause() {
+        if (paused) {
+            UnPause();
+            return;
+        }
+        if (SetPanel(pausePanel)) paused = true;
+    }
+
+    private bool SetPanel(GameObject newPanel) {
+        if (currentPanel != mainGamePanel && newPanel == pausePanel) return false;
+        currentPanel.SetActive(false);
+        returnPanel = currentPanel;
+        currentPanel = newPanel;
+        currentPanel.SetActive(true);
+        return true;
+    }
+
+    public void ToggleHelpPanel() {
+        helpPanel.SetActive(!helpPanel.activeInHierarchy);
     }
 }

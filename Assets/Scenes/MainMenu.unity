@@ -108907,7 +108907,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 983515210}
         m_TargetAssemblyTypeName: MainMenuManager, Assembly-CSharp
-        m_MethodName: StartMultiplayerGame
+        m_MethodName: StartTutorial
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

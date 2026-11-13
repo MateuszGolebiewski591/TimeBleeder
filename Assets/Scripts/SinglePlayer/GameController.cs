@@ -517,10 +517,12 @@ public class GameController : MonoBehaviour
     }
 
     public void SelectTileRPC(SinglePlayerController.Mode mode, Vector2Int blockID, int board, ulong playerID) {
+        Debug.Log("Ray received: " + mode);
         switch (mode) {
             // RunTarjans is called inside the functions themselves ()
             case SinglePlayerController.Mode.raise : {
                 bool outcome = TryRaiseWall(board == 1 ? board1 : board2, blockID);
+                print(outcome);
                 RunTarjans(board == 1 ? board1 : board2);
                 if (outcome) {
                     if (playerID == 0) player1Tokens.Value -= 1;
@@ -530,6 +532,7 @@ public class GameController : MonoBehaviour
             }
             case SinglePlayerController.Mode.lower : {
                 bool outcome = TryLowerWall(board == 1 ? board1 : board2, blockID);
+                print(outcome);
                 RunTarjans(board == 1 ? board1 : board2);
                 if (outcome) {
                     if (playerID == 0) player1Tokens.Value -= 1;
@@ -539,6 +542,7 @@ public class GameController : MonoBehaviour
             }
             case SinglePlayerController.Mode.move : { 
                 bool outcome = false;
+                print(outcome);
                 if (board == 1 && playerID == 0) outcome = TryMovePlayer(board1, blockID, playerID);
                 else if (board == 2 && playerID == 1) outcome = TryMovePlayer(board2, blockID, playerID);
                 if (outcome) {

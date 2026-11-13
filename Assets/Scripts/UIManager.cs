@@ -15,6 +15,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject gameEndPanel;
     [SerializeField] private GameObject mainMenuButton;
     [SerializeField] private GameObject timePanel;
+    [SerializeField] private GameObject helpPanel;
 
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
     [SerializeField] private TextMeshProUGUI countDownPanelText;
@@ -152,11 +153,15 @@ public class UIManager : MonoBehaviour
 
     private void TimeStopCount1(int prev, int nexti) {
         if (player == 1) return; 
-        timeStopText.text = $"E - Stop Time ({nexti})";
+        timeStopText.text = $"Time Stops ({nexti})";
     }
 
     private void TimeStopCount2(int prev, int nexti) {
         if (player == 0) return; 
-        timeStopText.text = $"E - Stop Time ({nexti})";
+        timeStopText.text = $"Time Stops ({nexti})";
+    }
+
+    public void ToggleHelpPanel() {
+        helpPanel.SetActive(!helpPanel.activeInHierarchy);
     }
 }

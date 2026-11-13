@@ -56,6 +56,7 @@ public class SinglePlayerController : MonoBehaviour
     }
 
     void Update() {
+        if (Input.GetKeyDown(KeyCode.Escape)) UI.Pause();
         if (Input.GetKeyDown(KeyCode.Mouse0)) OnLeftClick();
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchMode(Mode.raise);
         if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchMode(Mode.lower);
@@ -95,13 +96,12 @@ public class SinglePlayerController : MonoBehaviour
         Ray ray = GetComponent<Camera>().ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            if (hit.collider.gameObject.GetComponent<TimeTurner>() != null) {
-                hit.collider.gameObject.GetComponent<TimeTurner>().TriggerAnimation();
+            if (hit.collider.gameObject.GetComponent<TimeTurnerSingle>() != null) {
                 ganc.SwitchTurnRPC(0);
                 return;
             }
             Vector3 blockPos = hit.collider.gameObject.transform.position;
-            MazeBuilder builder = hit.collider.GetComponentInParent<MazeBuilder>();
+            SinglePlayerMazeBuilder builder = hit.collider.GetComponentInParent<SinglePlayerMazeBuilder>();
             if (builder == null) return;
             if (!builder.TryGetGridPosition(hit.point - hit.normal * 0.01f, out Vector2Int pos)) return;
             if(tokenCount <= 0) return;

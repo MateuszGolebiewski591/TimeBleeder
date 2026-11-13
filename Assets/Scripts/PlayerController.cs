@@ -122,7 +122,7 @@ public class PlayerController : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             if (hit.collider.gameObject.GetComponent<TimeTurner>() != null) {
-                hit.collider.gameObject.GetComponent<TimeTurner>().TriggerAnimation();
+                //hit.collider.gameObject.GetComponent<TimeTurner>().TriggerAnimation();
                 ganc.SwitchTurnRPC();
                 return;
             }
