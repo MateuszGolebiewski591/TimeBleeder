@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 public class UIManagerSingle : MonoBehaviour
 {
+    [Header("Panels")]
     [SerializeField] private GameObject readyUpPanel;
     [SerializeField] private GameObject countDownPanel;
     [SerializeField] private GameObject mainGamePanel;
@@ -15,7 +16,9 @@ public class UIManagerSingle : MonoBehaviour
     [SerializeField] private GameObject timePanel;
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private GameObject helpPanel;
+    [SerializeField] private GameObject tutorialPanels;
 
+    [Header("Text")]
     [SerializeField] private TextMeshProUGUI readyUpPanelText;
     [SerializeField] private TextMeshProUGUI countDownPanelText;
     [SerializeField] private TextMeshProUGUI mainTimerText;
@@ -25,16 +28,21 @@ public class UIManagerSingle : MonoBehaviour
     [SerializeField] private TextMeshProUGUI tokenText;
     [SerializeField] private TextMeshProUGUI timeStopText; 
 
+    [Header("Tutorial Panels")]
+    [SerializeField] private GameObject introductionPanel; 
+    [SerializeField] private GameObject showPlayerPanel;
+    [SerializeField] private GameObject showAngelPanel;
+
     public GameController ganc; 
     private ulong player;
     private bool paused = false;
     private GameObject currentPanel;
     private GameObject returnPanel;
+    public TutorialManager TM;
 
     private void Start()
     {
         ganc = FindFirstObjectByType<GameController>();
-
         ganc.player1Ready.OnValueChanged += UpdateReadyUpPanel1;
         ganc.player2Ready.OnValueChanged += UpdateReadyUpPanel2;
         ganc.state.OnValueChanged += GameStateChange;
@@ -49,6 +57,9 @@ public class UIManagerSingle : MonoBehaviour
         ganc.player2TimeStops.OnValueChanged += TimeStopCount2;
         ganc.isTimeStop.OnValueChanged += TimeStop;
         currentPanel = readyUpPanel;
+        TM = FindFirstObjectByType<TutorialManager>();
+        TM.tutorialState.OnValueChanged += TutorialProgress;
+        if (TM.isTutorialActive) tutorialPanels.SetActive(true);
     }
 
     private void UpdateReadyUpPanel1(bool newStatus) {
@@ -90,7 +101,6 @@ public class UIManagerSingle : MonoBehaviour
 
     private void UpdateGlobalTime(float nextf) {
         int next = (int)nextf;
-        //mainTimerText.text = $"{next/60}:{next%60:D2}";
     }
 
     private void UpdatePlayer1Time(float nextf) {
@@ -164,5 +174,20 @@ public class UIManagerSingle : MonoBehaviour
 
     public void ToggleHelpPanel() {
         helpPanel.SetActive(!helpPanel.activeInHierarchy);
+    }
+
+    private void TutorialProgress(TutorialManager.TutorialStates newState) {
+        switch (newState) {
+            case TutorialManager.TutorialStates.IntroducePlayerState : {
+                introductionPanel.SetActive(false);
+                showPlayerPanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.IntroduceAngelState : {
+                showAngelPanel.SetActive(true);
+                showPlayerPanel.SetActive(false);
+                break;
+            }
+        }
     }
 }

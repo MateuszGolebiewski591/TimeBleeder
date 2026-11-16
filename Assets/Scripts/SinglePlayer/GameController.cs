@@ -34,6 +34,7 @@ public class GameController : MonoBehaviour
     private Dictionary<ulong, bool> playerReady = new Dictionary<ulong, bool>();
 
     private Coroutine tS = null;
+    private TutorialManager TM;
 
 
 
@@ -92,24 +93,14 @@ public class GameController : MonoBehaviour
     private Vector2Int? board2PlayerShown;
 
     void Start()
-    {
-            // state.Value = GameState.ReadyUp;
-            // player1TimeGained.Value = 0;
-            // player2TimeGained.Value = 0;
-            // GlobalTime.Value = (int)timeLimit;
-            // player1Ready.Value = false;
-            // player2Ready.Value = false;
-            playerReady[0] = false;
-            playerReady[1] = true;
-            // countDownTime.Value = 3;
-            // currentPlayer.Value = 0;
-            // winnerDeclared.Value = 2;
-            // player1Tokens.Value = 0;
-            // player2Tokens.Value = 0;
-            // player1TimeStops.Value = 0;
-            // player2TimeStops.Value = 0;
-            // isTimeStop.Value = 0;
-            StartMazeGeneration();
+    {    
+        playerReady[0] = false;
+        playerReady[1] = true;
+        StartMazeGeneration();
+    }
+
+    void Awake() {
+        TM = GetComponent<TutorialManager>();
     }
 
     private void StartMazeGeneration()
@@ -425,6 +416,7 @@ public class GameController : MonoBehaviour
     public void ReadyRPC(ulong playerID) {
         // Late/duplicate clicks must not restart the countdown
         if (state.Value != GameState.ReadyUp) return;
+        if (!TM.ActionRecorded(TutorialManager.ActionType.LeftClick)) return;
 
         if (!playerReady.TryGetValue(playerID, out bool alreadyReady)) {
             Debug.LogWarning($"ReadyRPC from unexpected client {playerID}");
@@ -465,6 +457,7 @@ public class GameController : MonoBehaviour
         player1TimeStops.Value = 3;
         player2TimeStops.Value = 3;
         AudioManager.Instance.PlayStartGameRPC();
+        TM.ActionRecorded(TutorialManager.ActionType.CountdownFinished);
         StartCoroutine(GlobalTimerCountdown());
     }
 
