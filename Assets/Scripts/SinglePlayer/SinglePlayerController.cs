@@ -14,6 +14,7 @@ public class SinglePlayerController : MonoBehaviour
     private Vector3 initialPosition = Vector3.zero;
     private Vector3 otherPosition = Vector3.zero;
     private Mode currentMode;
+    private TutorialManager TM;
 
     private Coroutine movingForward = null;
     private Coroutine movingBackward = null;
@@ -40,6 +41,7 @@ public class SinglePlayerController : MonoBehaviour
         ganc.currentPlayer.OnValueChanged += UpdateTurn;
         state = ganc.state.Value;
         UpdateTurn(ganc.currentPlayer.Value);
+        TM = FindFirstObjectByType<TutorialManager>();
     }
 
     private void TokenCounter(int nexti) {
@@ -58,9 +60,15 @@ public class SinglePlayerController : MonoBehaviour
     void Update() {
         if (Input.GetKeyDown(KeyCode.Escape)) UI.Pause();
         if (Input.GetKeyDown(KeyCode.Mouse0)) OnLeftClick();
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchMode(Mode.raise);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchMode(Mode.lower);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchMode(Mode.move);
+        if (Input.GetKeyDown(KeyCode.Alpha1)) {
+            if (TM.ActionRecorded(TutorialManager.ActionType.ToggleRaiseBlock)) SwitchMode(Mode.raise);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2)) {
+            if (TM.ActionRecorded(TutorialManager.ActionType.ToggleLowerBlock)) SwitchMode(Mode.lower);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3)) {
+            if (TM.ActionRecorded(TutorialManager.ActionType.TogglePlayerMove)) SwitchMode(Mode.move);
+        }
         if (Input.GetKeyDown(KeyCode.E)) ZaWorldo();
         if (Input.GetKeyDown(KeyCode.W)) {
             if (Vector3.Distance(transform.position, initialPosition) < 0.1f && movingForward == null && movingBackward == null) movingForward = StartCoroutine(MoveForwardOverTime());
@@ -82,6 +90,7 @@ public class SinglePlayerController : MonoBehaviour
     }
 
     private void OnLeftClick() {
+        TM.ActionRecorded(TutorialManager.ActionType.LeftClick);
         if (state == GameController.GameState.ReadyUp) ganc.ReadyRPC(0);
         else if (state == GameController.GameState.GameActive) RayCast();
     }

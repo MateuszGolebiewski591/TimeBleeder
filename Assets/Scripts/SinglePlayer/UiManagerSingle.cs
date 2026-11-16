@@ -32,6 +32,12 @@ public class UIManagerSingle : MonoBehaviour
     [SerializeField] private GameObject introductionPanel; 
     [SerializeField] private GameObject showPlayerPanel;
     [SerializeField] private GameObject showAngelPanel;
+    [SerializeField] private GameObject toggleBlockPlacePanel;
+    [SerializeField] private GameObject placeBlockPanel;
+    [SerializeField] private GameObject toggleBlockLowerPanel;
+    [SerializeField] private GameObject lowerBlockPanel;
+    [SerializeField] private GameObject togglePlayerMovePanel;
+    [SerializeField] private GameObject playerMovePanel;
 
     public GameController ganc; 
     private ulong player;
@@ -186,6 +192,44 @@ public class UIManagerSingle : MonoBehaviour
             case TutorialManager.TutorialStates.IntroduceAngelState : {
                 showAngelPanel.SetActive(true);
                 showPlayerPanel.SetActive(false);
+                break;
+            }
+            case TutorialManager.TutorialStates.PlayState : {
+                introductionPanel.SetActive(false);
+                break;
+            }
+            case TutorialManager.TutorialStates.BlockPlaceToggleState : {
+                showAngelPanel.SetActive(false);
+                toggleBlockPlacePanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.BlockPlacedState : {
+                toggleBlockPlacePanel.SetActive(false);
+                placeBlockPanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.BlockLowerToggleState : {
+                placeBlockPanel.SetActive(false);
+                toggleBlockLowerPanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.BlockLoweredState : {
+                toggleBlockLowerPanel.SetActive(false);
+                lowerBlockPanel.SetActive(true);
+                break;
+            } 
+            case TutorialManager.TutorialStates.CharacterMoveToggleState : {
+                lowerBlockPanel.SetActive(false);
+                togglePlayerMovePanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.CharacterMovedState : {
+                togglePlayerMovePanel.SetActive(false);
+                playerMovePanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.EndTurnState : {
+                playerMovePanel.SetActive(false);
                 break;
             }
         }

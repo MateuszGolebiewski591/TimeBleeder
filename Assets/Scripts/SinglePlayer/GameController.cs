@@ -101,6 +101,7 @@ public class GameController : MonoBehaviour
 
     void Awake() {
         TM = GetComponent<TutorialManager>();
+        TM.tutorialState.OnValueChanged += TutorialStateChanged;
     }
 
     private void StartMazeGeneration()
@@ -275,6 +276,7 @@ public class GameController : MonoBehaviour
         }
 
         if (nextAngelGrid == angelGridVar.Value) return;
+        if (!TM.ActionRecorded(TutorialManager.ActionType.TickAngel)) return;
 
         angelGridVar.Value = nextAngelGrid;
         RunTarjans(board); // Angel moved, so which tiles block it may have changed
@@ -390,6 +392,7 @@ public class GameController : MonoBehaviour
     public void DropRandomWalls(SinglePlayerBoardController board, int count)
     {
         if (count <= 0 || mazeController == null) return;
+        if (TM.isTutorialActive) return;
 
         List<Vector2Int> candidates = mazeController.GetLowerableWalls(GetMazeData(board));
         for (int i = 0; i < count && candidates.Count > 0; i++)
@@ -416,7 +419,7 @@ public class GameController : MonoBehaviour
     public void ReadyRPC(ulong playerID) {
         // Late/duplicate clicks must not restart the countdown
         if (state.Value != GameState.ReadyUp) return;
-        if (!TM.ActionRecorded(TutorialManager.ActionType.LeftClick)) return;
+        if (!TM.ActionRecorded(TutorialManager.ActionType.ReadyUp)) return;
 
         if (!playerReady.TryGetValue(playerID, out bool alreadyReady)) {
             Debug.LogWarning($"ReadyRPC from unexpected client {playerID}");
@@ -514,6 +517,7 @@ public class GameController : MonoBehaviour
         switch (mode) {
             // RunTarjans is called inside the functions themselves ()
             case SinglePlayerController.Mode.raise : {
+                if (!TM.ActionRecorded(TutorialManager.ActionType.RaiseBlock)) return;
                 bool outcome = TryRaiseWall(board == 1 ? board1 : board2, blockID);
                 print(outcome);
                 RunTarjans(board == 1 ? board1 : board2);
@@ -524,6 +528,7 @@ public class GameController : MonoBehaviour
                 break;
             }
             case SinglePlayerController.Mode.lower : {
+                if (!TM.ActionRecorded(TutorialManager.ActionType.LowerBlock)) return;
                 bool outcome = TryLowerWall(board == 1 ? board1 : board2, blockID);
                 print(outcome);
                 RunTarjans(board == 1 ? board1 : board2);
@@ -534,6 +539,7 @@ public class GameController : MonoBehaviour
                 break;
             }
             case SinglePlayerController.Mode.move : { 
+                if (!TM.ActionRecorded(TutorialManager.ActionType.MovePlayer)) return;
                 bool outcome = false;
                 print(outcome);
                 if (board == 1 && playerID == 0) outcome = TryMovePlayer(board1, blockID, playerID);
@@ -626,6 +632,40 @@ public class GameController : MonoBehaviour
 
             block.canBeRaised = canBeRaised;
             blocks[i] = block;
+        }
+    }
+
+    private void TutorialStateChanged(TutorialManager.TutorialStates newState) {
+        switch (newState) {
+            case TutorialManager.TutorialStates.IntroducePlayerState : {
+                Renderer pieceRenderer = board1.player.gameObject.GetComponentInChildren<Renderer>(); 
+                pieceRenderer.material.color = Color.red;
+                Material mat = pieceRenderer.material;
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.red * 2f);
+                break;
+            }
+            case TutorialManager.TutorialStates.IntroduceAngelState : {
+                Renderer pieceRenderer = board1.player.gameObject.GetComponentInChildren<Renderer>(); 
+                pieceRenderer.material.color = Color.white;
+                Material mat = pieceRenderer.material;
+                mat.SetColor("_EmissionColor", Color.black);
+                mat.DisableKeyword("_EMISSION");
+                pieceRenderer = board1.angel.gameObject.GetComponentInChildren<Renderer>(); 
+                pieceRenderer.material.color = Color.red;
+                mat = pieceRenderer.material;
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.red * 2f);
+                break;
+            }
+            case TutorialManager.TutorialStates.BlockPlaceToggleState : {
+                Renderer pieceRenderer = board1.angel.gameObject.GetComponentInChildren<Renderer>(); 
+                pieceRenderer.material.color = Color.white;
+                Material mat = pieceRenderer.material;
+                mat.SetColor("_EmissionColor", Color.black);
+                mat.DisableKeyword("_EMISSION");
+                break;
+            }
         }
     }
 }
