@@ -17,6 +17,7 @@ public class GameController : MonoBehaviour
     [SerializeField] private Transform board1MazeCentre;
     [SerializeField] private Transform board2MazeCentre;
     [SerializeField] private int numWallsToDrop = 10;
+    [SerializeField] private TimeTurnerSingle clock;
 
     public MazeController mazeController;
     public MazeController Maze => mazeController;
@@ -469,7 +470,7 @@ public class GameController : MonoBehaviour
         int ro = 9;
         float p1acum = 0;
         float p2acum = 0;
-        while (state.Value == GameState.GameActive && GlobalTime.Value > 0) {
+        while (state.Value == GameState.GameActive) {
             if (isTimeStop.Value == 0) {
                 if (currentPlayer.Value == 0) {
                     player1TimeGained.Value += Time.deltaTime;
@@ -642,7 +643,7 @@ public class GameController : MonoBehaviour
                 pieceRenderer.material.color = Color.red;
                 Material mat = pieceRenderer.material;
                 mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", Color.red * 2f);
+                mat.SetColor("_EmissionColor", Color.red * 4f);
                 break;
             }
             case TutorialManager.TutorialStates.IntroduceAngelState : {
@@ -655,7 +656,7 @@ public class GameController : MonoBehaviour
                 pieceRenderer.material.color = Color.red;
                 mat = pieceRenderer.material;
                 mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", Color.red * 2f);
+                mat.SetColor("_EmissionColor", Color.red * 4f);
                 break;
             }
             case TutorialManager.TutorialStates.BlockPlaceToggleState : {
@@ -666,6 +667,32 @@ public class GameController : MonoBehaviour
                 mat.DisableKeyword("_EMISSION");
                 break;
             }
+            case TutorialManager.TutorialStates.EndTurnState : {
+                Renderer[] renderers = clock.gameObject.GetComponentsInChildren<Renderer>();
+                foreach (Renderer renderer in renderers)
+                {
+                    Material[] materials = renderer.materials;
+                    foreach (Material mat in materials) {
+                        mat.color = Color.red;
+                        mat.EnableKeyword("_EMISSION");
+                        mat.SetColor("_EmissionColor", Color.red * 4f);
+                    }
+                }  
+                break;     
+            } 
+            case TutorialManager.TutorialStates.SwitchBoardState : {
+                Renderer[] renderers = clock.gameObject.GetComponentsInChildren<Renderer>();
+                foreach (Renderer renderer in renderers)
+                {
+                    Material[] materials = renderer.materials;
+                    foreach (Material mat in materials) {
+                        mat.color = Color.white;
+                        mat.SetColor("_EmissionColor", Color.black);
+                        mat.DisableKeyword("_EMISSION");
+                    }
+                }    
+                break; 
+            }     
         }
     }
 }

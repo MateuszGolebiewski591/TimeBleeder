@@ -8,6 +8,7 @@ public class TutorialManager : MonoBehaviour
 
     public enum TutorialStates{
         WelcomeState,
+        CountDownState,
         PlayState,
         IntroducePlayerState,
         IntroduceAngelState,
@@ -20,7 +21,7 @@ public class TutorialManager : MonoBehaviour
         EndTurnState,
         SwitchBoardState,
         InterfereWithOpponentState,
-        LetAngelCaptureState
+        FinalState,
     }
 
     public enum ActionType{
@@ -31,6 +32,7 @@ public class TutorialManager : MonoBehaviour
         ToggleLowerBlock,
         TogglePlayerMove,
         SwitchedBoards,
+        SwitchedBoards2,
         TurnEnded,
         LeftClick,
         CountdownFinished,
@@ -53,16 +55,22 @@ public class TutorialManager : MonoBehaviour
                     tutorialState.Value = TutorialStates.BlockPlaceToggleState;
                     return true;
                 }
+                if (tutorialState.Value == TutorialStates.FinalState) {
+                    tutorialState.Value = TutorialStates.PlayState;
+                    isTutorialActive = false;
+                    return true;
+                }
                 break;
             }
             case ActionType.ReadyUp : {
                 if (tutorialState.Value == TutorialStates.WelcomeState) {
+                    tutorialState.Value = TutorialStates.CountDownState;
                     return true; 
                 }
                 break;
             }
             case ActionType.CountdownFinished : {
-                if (tutorialState.Value == TutorialStates.WelcomeState) {
+                if (tutorialState.Value == TutorialStates.CountDownState) {
                     tutorialState.Value = TutorialStates.PlayState;
                     return true; 
                 }
@@ -79,11 +87,16 @@ public class TutorialManager : MonoBehaviour
                     tutorialState.Value = TutorialStates.BlockPlacedState;
                     return true;
                 }
+                if (tutorialState.Value == TutorialStates.InterfereWithOpponentState) return true;
                 break;
             }
             case ActionType.RaiseBlock : {
                 if (tutorialState.Value == TutorialStates.BlockPlacedState) {
                     tutorialState.Value = TutorialStates.BlockLowerToggleState;
+                    return true;
+                }
+                if (tutorialState.Value == TutorialStates.InterfereWithOpponentState) {
+                    tutorialState.Value = TutorialStates.FinalState;
                     return true;
                 }
                 break;
@@ -93,11 +106,16 @@ public class TutorialManager : MonoBehaviour
                     tutorialState.Value = TutorialStates.BlockLoweredState;
                     return true;
                 }
+                if (tutorialState.Value == TutorialStates.InterfereWithOpponentState) return true;
                 break;
             }
             case ActionType.LowerBlock : {
                 if (tutorialState.Value == TutorialStates.BlockLoweredState) {
                     tutorialState.Value = TutorialStates.CharacterMoveToggleState;
+                    return true;
+                }
+                if (tutorialState.Value == TutorialStates.InterfereWithOpponentState) {
+                    tutorialState.Value = TutorialStates.FinalState;
                     return true;
                 }
                 break;
@@ -112,6 +130,20 @@ public class TutorialManager : MonoBehaviour
             case ActionType.MovePlayer : {
                 if (tutorialState.Value == TutorialStates.CharacterMovedState) {
                     tutorialState.Value = TutorialStates.EndTurnState;
+                    return true;
+                }
+                break;
+            }
+            case ActionType.TurnEnded : {
+                if (tutorialState.Value == TutorialStates.EndTurnState) {
+                    tutorialState.Value = TutorialStates.SwitchBoardState;
+                    return true;
+                }
+                break;
+            }
+            case ActionType.SwitchedBoards : {
+                if (tutorialState.Value == TutorialStates.SwitchBoardState) {
+                    tutorialState.Value = TutorialStates.InterfereWithOpponentState;
                     return true;
                 }
                 break;

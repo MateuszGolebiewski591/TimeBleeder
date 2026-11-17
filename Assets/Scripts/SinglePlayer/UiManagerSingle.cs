@@ -38,6 +38,10 @@ public class UIManagerSingle : MonoBehaviour
     [SerializeField] private GameObject lowerBlockPanel;
     [SerializeField] private GameObject togglePlayerMovePanel;
     [SerializeField] private GameObject playerMovePanel;
+    [SerializeField] private GameObject turnEndPanel;
+    [SerializeField] private GameObject switchBoardPanel;
+    [SerializeField] private GameObject interferePanel;
+    [SerializeField] private GameObject finalPanel;
 
     public GameController ganc; 
     private ulong player;
@@ -195,6 +199,10 @@ public class UIManagerSingle : MonoBehaviour
                 break;
             }
             case TutorialManager.TutorialStates.PlayState : {
+                finalPanel.SetActive(false);
+                break;
+            }
+            case TutorialManager.TutorialStates.CountDownState : {
                 introductionPanel.SetActive(false);
                 break;
             }
@@ -230,6 +238,22 @@ public class UIManagerSingle : MonoBehaviour
             }
             case TutorialManager.TutorialStates.EndTurnState : {
                 playerMovePanel.SetActive(false);
+                turnEndPanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.SwitchBoardState : {
+                turnEndPanel.SetActive(false);
+                switchBoardPanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.InterfereWithOpponentState : {
+                switchBoardPanel.SetActive(false); 
+                interferePanel.SetActive(true);
+                break;
+            }
+            case TutorialManager.TutorialStates.FinalState : {
+                interferePanel.SetActive(false);
+                finalPanel.SetActive(true);
                 break;
             }
         }

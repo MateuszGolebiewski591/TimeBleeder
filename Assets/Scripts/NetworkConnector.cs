@@ -19,6 +19,7 @@ public class NetworkConnector : NetworkBehaviour
     void Start()
     {
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
         NetworkManager.Singleton.OnServerStarted += OnServerStarted;
     }
 
@@ -27,6 +28,7 @@ public class NetworkConnector : NetworkBehaviour
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
             NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
         }
         if (Instance == this) Instance = null;
@@ -47,5 +49,17 @@ public class NetworkConnector : NetworkBehaviour
             gameStarting = true;
             NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
+    }
+
+    private void OnClientDisconnected(ulong clientId)
+    {
+        // Only handle the local client's disconnection.
+        if (clientId != NetworkManager.Singleton.LocalClientId)
+            return;
+
+        // Don't react to a normal host shutdown.
+        if (NetworkManager.Singleton.IsServer)
+            return;
+        FindFirstObjectByType<UIManager>().ReturnToMainMenu();
     }
 }

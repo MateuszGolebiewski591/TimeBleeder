@@ -71,10 +71,14 @@ public class SinglePlayerController : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.E)) ZaWorldo();
         if (Input.GetKeyDown(KeyCode.W)) {
-            if (Vector3.Distance(transform.position, initialPosition) < 0.1f && movingForward == null && movingBackward == null) movingForward = StartCoroutine(MoveForwardOverTime());
+            if (TM.ActionRecorded(TutorialManager.ActionType.SwitchedBoards)) {
+                if (Vector3.Distance(transform.position, initialPosition) < 0.1f && movingForward == null && movingBackward == null) movingForward = StartCoroutine(MoveForwardOverTime());
+            }
         }
         if (Input.GetKeyDown(KeyCode.S)) {
-            if (Vector3.Distance(transform.position, otherPosition) < 0.1f && movingForward == null && movingBackward == null) movingBackward = StartCoroutine(MoveBackwardOverTime());
+            if (TM.ActionRecorded(TutorialManager.ActionType.SwitchedBoards2)) {
+                if (Vector3.Distance(transform.position, otherPosition) < 0.1f && movingForward == null && movingBackward == null) movingBackward = StartCoroutine(MoveBackwardOverTime());
+            }
         }
     }
 
@@ -106,7 +110,7 @@ public class SinglePlayerController : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             if (hit.collider.gameObject.GetComponent<TimeTurnerSingle>() != null) {
-                ganc.SwitchTurnRPC(0);
+                if (TM.ActionRecorded(TutorialManager.ActionType.TurnEnded)) ganc.SwitchTurnRPC(0);
                 return;
             }
             Vector3 blockPos = hit.collider.gameObject.transform.position;
