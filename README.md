@@ -5,7 +5,7 @@
 
 **A 1v1 online strategy game where the winner is whoever wastes more of their opponent's time.**
 
-Built in Unity in 24 hours for the CSS Game Jam (theme: *Time*).
+Built in Unity in 24 hours for the University of Bristol CSS Game Jam (theme: *Time*).
 
 [![Play on itch.io](https://img.shields.io/badge/Play%20on-itch.io-fa5c5c?logo=itchdotio&logoColor=white)](https://typevoidgames.itch.io/time-bleeder)
 ![Unity](https://img.shields.io/badge/Unity-6.6.8-black?logo=unity)
